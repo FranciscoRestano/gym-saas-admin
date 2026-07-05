@@ -1,43 +1,49 @@
-# Astro Starter Kit: Minimal
+# Gym SaaS - Panel de Administración
 
-```sh
-npm create astro@latest -- --template minimal
+Sistema de administración SaaS para gimnasios con 3 roles: **Admin**, **Profesor** y **Alumno**.
+
+## Tecnologías
+
+- **Astro 7** — Framework web con renderizado del lado del servidor (SSR)
+- **Supabase** — Base de datos PostgreSQL + Autenticación
+- **Tailwind CSS 4** — Estilos utilitarios
+- **Vercel** — Deploy serverless
+
+## Estructura de roles
+
+| Rol      | Acceso                                 |
+| -------- | -------------------------------------- |
+| Admin    | Dashboard completo con CRUD de todo    |
+| Profesor | Gestión de clientes, ejercicios y rutinas |
+| Alumno   | Visualización de su rutina asignada    |
+
+## Funcionalidades
+
+- Autenticación por rol con sesiones y middleware de protección de rutas
+- Dashboard admin con métricas
+- CRUD de clientes, profesores, planes, ejercicios y rutinas
+- Módulo de caja
+- Configuración del sistema
+- Interfaz responsiva
+
+## Variables de entorno
+
+Crear un archivo `.env` en la raíz del proyecto:
+
+```env
+PUBLIC_SUPABASE_URL=tu_url_de_supabase
+PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Comandos
 
-## 🚀 Project Structure
+| Comando             | Acción                               |
+| :------------------ | :----------------------------------- |
+| `npm install`       | Instalar dependencias                |
+| `npm run dev`       | Iniciar servidor de desarrollo       |
+| `npm run build`     | Compilar para producción             |
+| `npm run preview`   | Previsualizar el build localmente    |
 
-Inside of your Astro project, you'll see the following folders and files:
+## Deploy
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+El proyecto está configurado para deploy automático en **Vercel** mediante el adapter `@astrojs/vercel`. Conectá el repositorio en [vercel.com](https://vercel.com) y agregá las variables de entorno correspondientes.
