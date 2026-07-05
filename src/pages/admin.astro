@@ -100,7 +100,9 @@ import '../styles/global.css';
         btnAdmin.textContent = 'Ingresar al Panel';
 
         if (!res.ok) {
-          mostrarError('Credenciales incorrectas. Intentá de nuevo.');
+          const data = await res.json();
+          console.error('[admin-login] Error:', data);
+          mostrarError(data.detail || data.error || 'Credenciales incorrectas. Intentá de nuevo.');
           return;
         }
 

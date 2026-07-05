@@ -47,8 +47,9 @@ export const POST: APIRoute = async ({ request }) => {
         'Set-Cookie': `admin_session=${cookieValue}; ${COOKIE_FLAGS}`,
       },
     });
-  } catch {
-    return new Response(JSON.stringify({ error: 'Error interno' }), {
+  } catch (e) {
+    console.error('[login-admin] Error inesperado:', e);
+    return new Response(JSON.stringify({ error: 'Error interno', detail: String(e) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
