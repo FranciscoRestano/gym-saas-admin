@@ -1,0 +1,480 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Inicio">
+  <div class="space-y-8">
+    <!-- Encabezado -->
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-widest text-zinc-400">Centro de operaciones</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-zinc-900">Pulso del negocio</h1>
+      <p class="mt-1 text-sm text-zinc-500">Así está tu gimnasio hoy.</p>
+    </div>
+
+    <!-- KPIs operativos -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <!-- Salud de pases -->
+      <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-zinc-400">Salud de pases</p>
+
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-salud-pct" class="text-4xl font-bold tracking-tight tabular-nums text-zinc-900">—</span>
+          <span class="text-sm font-medium text-zinc-500">vigentes</span>
+        </div>
+
+        <div class="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div id="kpi-salud-barra-verde" class="h-full bg-emerald-500 transition-all duration-500" style="width:0%"></div>
+          <div id="kpi-salud-barra-roja" class="h-full bg-red-400 transition-all duration-500" style="width:0%"></div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between text-xs font-medium text-zinc-600">
+          <span class="flex items-center gap-1.5">
+            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span id="kpi-activos">—</span> activos
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-2 w-2 rounded-full bg-red-400"></span>
+            <span id="kpi-vencidos">—</span> vencidos
+          </span>
+        </div>
+      </div>
+
+      <!-- Ingresos del mes -->
+      <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-5">
+        <div class="flex items-start justify-between">
+          <p class="text-xs font-semibold uppercase tracking-widest text-zinc-400">Ingresos del mes</p>
+          <span id="kpi-ingresos-badge" class="rounded-full px-2 py-0.5 text-xs font-semibold bg-zinc-100 text-zinc-500">
+            —
+          </span>
+        </div>
+
+        <div class="mt-3 flex items-end gap-4">
+          <div>
+            <p id="kpi-ingresos-real" class="text-3xl font-bold tracking-tight tabular-nums text-zinc-900">—</p>
+            <p class="text-xs font-medium text-zinc-500">Cobrado</p>
+          </div>
+          <div class="border-l border-zinc-200 pl-4">
+            <p id="kpi-ingresos-proyectado" class="text-lg font-semibold tabular-nums text-zinc-400">—</p>
+            <p class="text-xs font-medium text-zinc-400">Proyectado</p>
+          </div>
+        </div>
+
+        <div class="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div id="kpi-ingresos-barra" class="h-full bg-emerald-500 transition-all duration-500" style="width:0%"></div>
+        </div>
+
+        <p id="kpi-ingresos-pendiente" class="mt-3 hidden text-xs font-medium text-amber-700"></p>
+        <p id="kpi-ingresos-superada" class="mt-3 hidden text-xs font-medium text-emerald-700"></p>
+
+        <a
+          href="/dashboard/caja"
+          class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition-colors hover:text-emerald-600"
+        >
+          Ver detalle de caja
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+
+      <!-- Tasa de abandono -->
+      <div id="kpi-churn-card" class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-3">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-semibold uppercase tracking-widest text-zinc-400">Tasa de abandono</p>
+        </div>
+
+        <p id="kpi-churn-pct" class="mt-2 text-4xl font-bold tracking-tight tabular-nums text-zinc-900">—</p>
+
+        <p id="kpi-churn-delta" class="mt-2 flex items-center gap-1 text-xs font-semibold text-zinc-500"></p>
+
+        <p id="kpi-churn-aviso" class="mt-3 hidden rounded-lg bg-red-100 px-2.5 py-2 text-xs font-medium text-red-700">
+          Subió respecto al mes pasado. Revisá los motivos de baja.
+        </p>
+      </div>
+
+      <!-- Costo de sueldos proyectado -->
+      <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-zinc-400">Sueldos proyectados (mes)</p>
+        <p id="kpi-sueldos-total" class="mt-2 text-3xl font-bold tracking-tight tabular-nums text-zinc-900">—</p>
+        <p class="mt-1 text-xs font-medium text-zinc-500"><span id="kpi-sueldos-count">0</span> profesores activos</p>
+        <div id="kpi-sueldos-detalle" class="mt-3 space-y-1.5 text-xs text-zinc-600"></div>
+      </div>
+
+      <!-- Total alumnos -->
+      <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-4">
+        <p class="text-xs font-semibold uppercase tracking-widest text-zinc-400">Total alumnos</p>
+        <p id="kpi-total-alumnos" class="mt-2 text-3xl font-bold tracking-tight tabular-nums text-emerald-600">—</p>
+        <p class="mt-1 text-xs font-medium text-zinc-500">Inscriptos en el sistema</p>
+      </div>
+    </div>
+
+    <!-- Alertas de vencimiento -->
+    <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-widest text-red-600">Acción requerida</p>
+          <h2 class="mt-1 text-lg font-bold tracking-tight text-zinc-900">Alertas de Vencimiento</h2>
+          <p class="text-sm text-zinc-500">Pases que vencen dentro de los próximos 3 días</p>
+        </div>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1.5 text-xs font-bold text-white">
+          <span id="contador-numero">0</span>
+          <span>pendientes</span>
+        </span>
+      </div>
+
+      <p id="alertas-cargando" class="mt-6 py-10 text-center text-sm text-zinc-500">Cargando alertas…</p>
+      <p id="alertas-vacio" class="hidden mt-6 py-10 text-center text-sm text-zinc-500">No hay vencimientos en los próximos 3 días.</p>
+      <div id="alertas-lista" class="hidden mt-5 space-y-3"></div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────────────
+
+  function hoyISO(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function formatARS(monto: number): string {
+    return '$' + monto.toLocaleString('es-AR');
+  }
+
+  function formatFecha(iso: string | null): string {
+    if (!iso) return '—';
+    const [anio, mes, dia] = iso.slice(0, 10).split('-');
+    return `${dia}/${mes}/${anio}`;
+  }
+
+  function iniciales(nombre: string): string {
+    return nombre.trim().split(/\s+/).map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase();
+  }
+
+  function diferenciaEnDias(fechaFin: string, fechaInicio: string): number {
+    const a = new Date(fechaFin + 'T00:00:00');
+    const b = new Date(fechaInicio + 'T00:00:00');
+    return Math.round((a.getTime() - b.getTime()) / 86_400_000);
+  }
+
+  // ── Interfaces ───────────────────────────────────────────────────
+
+  interface ClienteRow {
+    id: string;
+    nombre: string;
+    dni: string;
+    plan_id: string | null;
+    profesor_id: string | null;
+  }
+
+  interface PagoRow {
+    cliente_id: string;
+    fecha_pago: string | null;
+    fecha_vencimiento: string | null;
+    monto_pagado: number | null;
+  }
+
+  interface PlanRow {
+    id: string;
+    nombre: string;
+    precio: number;
+  }
+
+  interface AlertaVencimiento {
+    id: string;
+    nombre: string;
+    dni: string;
+    plan: string;
+    monto: number;
+    fechaVencimiento: string;
+    diasRestantes: number;
+  }
+
+  // ── DOM refs ─────────────────────────────────────────────────────
+
+  const kpiSaludPct = document.getElementById('kpi-salud-pct');
+  const kpiSaludVerde = document.getElementById('kpi-salud-barra-verde');
+  const kpiSaludRoja = document.getElementById('kpi-salud-barra-roja');
+  const kpiActivos = document.getElementById('kpi-activos');
+  const kpiVencidos = document.getElementById('kpi-vencidos');
+
+  const kpiIngresosReal = document.getElementById('kpi-ingresos-real');
+  const kpiIngresosProyectado = document.getElementById('kpi-ingresos-proyectado');
+  const kpiIngresosBadge = document.getElementById('kpi-ingresos-badge');
+  const kpiIngresosBarra = document.getElementById('kpi-ingresos-barra');
+  const kpiIngresosPendiente = document.getElementById('kpi-ingresos-pendiente');
+  const kpiIngresosSuperada = document.getElementById('kpi-ingresos-superada');
+
+  const kpiChurnCard = document.getElementById('kpi-churn-card');
+  const kpiChurnPct = document.getElementById('kpi-churn-pct');
+  const kpiChurnDelta = document.getElementById('kpi-churn-delta');
+  const kpiChurnAviso = document.getElementById('kpi-churn-aviso');
+
+  const kpiSueldosTotal = document.getElementById('kpi-sueldos-total');
+  const kpiSueldosCount = document.getElementById('kpi-sueldos-count');
+  const kpiSueldosDetalle = document.getElementById('kpi-sueldos-detalle');
+  const kpiTotalAlumnos = document.getElementById('kpi-total-alumnos');
+
+  const contadorNumero = document.getElementById('contador-numero');
+  const alertasCargando = document.getElementById('alertas-cargando');
+  const alertasVacio = document.getElementById('alertas-vacio');
+  const alertasLista = document.getElementById('alertas-lista');
+
+  // ── Lógica principal ─────────────────────────────────────────────
+
+  async function cargarDashboard(): Promise<void> {
+    const hoy = hoyISO();
+
+    const res = await fetch('/api/admin/dashboard');
+
+    if (!res.ok) {
+      if (alertasCargando) alertasCargando.textContent = 'Error al cargar datos.';
+      return;
+    }
+
+    const { clientes, pagosAll, pagosMes, planes, profesores } = await res.json();
+
+    const mapaPlanes = new Map(planes.map((p) => [p.id, p]));
+
+    // ── 1. Salud de pases ──────────────────────────────────────────
+
+    const ultimoPagoPorCliente = new Map<string, PagoRow>();
+    for (const pago of pagosAll) {
+      if (!ultimoPagoPorCliente.has(pago.cliente_id)) {
+        ultimoPagoPorCliente.set(pago.cliente_id, pago);
+      }
+    }
+
+    let activos = 0;
+    let vencidos = 0;
+
+    for (const cliente of clientes) {
+      const ultimoPago = ultimoPagoPorCliente.get(cliente.id);
+      const fv = ultimoPago?.fecha_vencimiento;
+
+      if (!fv) {
+        activos++;
+      } else if (fv >= hoy) {
+        activos++;
+      } else {
+        vencidos++;
+      }
+    }
+
+    const total = activos + vencidos;
+    const saludPct = total > 0 ? Math.round((activos / total) * 100) : 0;
+
+    if (kpiSaludPct) kpiSaludPct.textContent = `${saludPct}%`;
+    if (kpiSaludVerde) kpiSaludVerde.style.width = `${saludPct}%`;
+    if (kpiSaludRoja) kpiSaludRoja.style.width = `${100 - saludPct}%`;
+    if (kpiActivos) kpiActivos.textContent = String(activos);
+    if (kpiVencidos) kpiVencidos.textContent = String(vencidos);
+
+    // ── 2. Ingresos del mes ────────────────────────────────────────
+
+    const ingresoReal = pagosMes.reduce((s, p) => s + (p.monto_pagado ?? 0), 0);
+
+    let ingresoProyectado = 0;
+    for (const cliente of clientes) {
+      const ultimoPago = ultimoPagoPorCliente.get(cliente.id);
+      const fv = ultimoPago?.fecha_vencimiento;
+      const estaActivo = !fv || fv >= hoy;
+      if (estaActivo) {
+        const plan = mapaPlanes.get(cliente.plan_id ?? '');
+        ingresoProyectado += plan?.precio ?? 0;
+      }
+    }
+    const pctCobrado = ingresoProyectado > 0 ? Math.round((ingresoReal / ingresoProyectado) * 100) : 0;
+    const pendienteCobro = Math.max(0, ingresoProyectado - ingresoReal);
+
+    const colorCobranza = pctCobrado >= 90 ? 'emerald' : pctCobrado >= 70 ? 'amber' : 'red';
+
+    if (kpiIngresosReal) kpiIngresosReal.textContent = formatARS(ingresoReal);
+    if (kpiIngresosProyectado) kpiIngresosProyectado.textContent = formatARS(ingresoProyectado);
+    if (kpiIngresosBadge) {
+      kpiIngresosBadge.textContent = `${pctCobrado}% cobrado`;
+      kpiIngresosBadge.className = `rounded-full px-2 py-0.5 text-xs font-semibold ${
+        colorCobranza === 'emerald' ? 'bg-emerald-50 text-emerald-700'
+          : colorCobranza === 'amber' ? 'bg-amber-50 text-amber-700'
+            : 'bg-red-50 text-red-700'
+      }`;
+    }
+    if (kpiIngresosBarra) {
+      kpiIngresosBarra.style.width = `${Math.min(pctCobrado, 100)}%`;
+      kpiIngresosBarra.className = `h-full transition-all duration-500 ${
+        colorCobranza === 'emerald' ? 'bg-emerald-500' : colorCobranza === 'amber' ? 'bg-amber-500' : 'bg-red-500'
+      }`;
+    }
+
+    if (pendienteCobro > 0) {
+      if (kpiIngresosPendiente) {
+        kpiIngresosPendiente.textContent = `${formatARS(pendienteCobro)} pendientes de cobrar este mes`;
+        kpiIngresosPendiente.classList.remove('hidden');
+      }
+    } else {
+      if (kpiIngresosSuperada) {
+        kpiIngresosSuperada.textContent = 'Meta de cobranza superada este mes.';
+        kpiIngresosSuperada.classList.remove('hidden');
+      }
+    }
+
+    // ── 3. Tasa de abandono (vencidos hace más de 15 días) ──────────
+
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 15);
+    const fechaLimiteISO = `${fechaLimite.getFullYear()}-${String(fechaLimite.getMonth() + 1).padStart(2, '0')}-${String(fechaLimite.getDate()).padStart(2, '0')}`;
+
+    let abandonados = 0;
+    for (const cliente of clientes) {
+      const ultimoPago = ultimoPagoPorCliente.get(cliente.id);
+      const fv = ultimoPago?.fecha_vencimiento;
+      if (fv && fv < fechaLimiteISO) {
+        abandonados++;
+      }
+    }
+
+    const churnPct = total > 0 ? Math.round((abandonados / total) * 100) : 0;
+
+    if (kpiChurnPct) kpiChurnPct.textContent = `${churnPct}%`;
+    if (kpiChurnDelta) {
+      kpiChurnDelta.textContent = `${abandonados} alumnos sin renovar por más de 15 días`;
+    }
+
+    if (churnPct > 0 && kpiChurnCard) {
+      kpiChurnCard.classList.remove('border-zinc-200', 'bg-white');
+      kpiChurnCard.classList.add('border-red-200', 'bg-red-50');
+      if (kpiChurnPct) {
+        kpiChurnPct.classList.remove('text-zinc-900');
+        kpiChurnPct.classList.add('text-red-700');
+      }
+      if (kpiChurnAviso) kpiChurnAviso.classList.remove('hidden');
+    }
+
+    // ── 4. Sueldos proyectados ──────────────────────────────────────
+
+    let totalSueldo = 0;
+    const filasSueldo: string[] = [];
+
+    for (const prof of profesores) {
+      const alumnosAsignados = (clientes as ClienteRow[]).filter((c) => {
+        if (c.profesor_id !== prof.id) return false;
+        const ultimoPago = ultimoPagoPorCliente.get(c.id);
+        const fv = ultimoPago?.fecha_vencimiento;
+        return !fv || fv >= hoy;
+      }).length;
+      const horas = prof.horas_semanales ?? 0;
+      const pagoHora = prof.pago_por_hora ?? 0;
+      const comisionAlumno = prof.comision_por_alumno ?? 0;
+      const sueldo = (pagoHora * horas * 4) + (alumnosAsignados * comisionAlumno);
+      totalSueldo += sueldo;
+
+      filasSueldo.push(`
+        <div class="flex items-center justify-between">
+          <span>${prof.nombre}</span>
+          <span class="font-semibold tabular-nums">${formatARS(sueldo)}</span>
+        </div>
+      `);
+    }
+
+    if (kpiSueldosTotal) kpiSueldosTotal.textContent = formatARS(totalSueldo);
+    if (kpiSueldosCount) kpiSueldosCount.textContent = String(profesores.length);
+    if (kpiSueldosDetalle) kpiSueldosDetalle.innerHTML = filasSueldo.join('');
+
+    // ── 5. Total alumnos ────────────────────────────────────────────
+
+    if (kpiTotalAlumnos) kpiTotalAlumnos.textContent = String(clientes.length);
+
+    // ── 6. Alertas de vencimiento (próximos 3 días) ────────────────
+
+    if (alertasCargando) alertasCargando.classList.add('hidden');
+
+    const alertas: AlertaVencimiento[] = [];
+
+    for (const cliente of clientes) {
+      const ultimoPago = ultimoPagoPorCliente.get(cliente.id);
+      const fv = ultimoPago?.fecha_vencimiento;
+
+      if (!fv) continue;
+
+      const dias = diferenciaEnDias(fv, hoy);
+
+      if (dias >= 0 && dias <= 3) {
+        const planInfo = mapaPlanes.get(cliente.plan_id ?? '');
+        alertas.push({
+          id: cliente.id,
+          nombre: cliente.nombre,
+          dni: cliente.dni,
+          plan: planInfo?.nombre ?? 'Sin plan',
+          monto: ultimoPago?.monto_pagado ?? planInfo?.precio ?? 0,
+          fechaVencimiento: fv,
+          diasRestantes: dias,
+        });
+      }
+    }
+
+    alertas.sort((a, b) => a.diasRestantes - b.diasRestantes);
+
+    if (contadorNumero) contadorNumero.textContent = String(alertas.length);
+
+    if (alertas.length === 0) {
+      if (alertasVacio) alertasVacio.classList.remove('hidden');
+    } else {
+      if (alertasLista) {
+        alertasLista.classList.remove('hidden');
+        alertasLista.innerHTML = alertas.map((alerta) => {
+          const dias = alerta.diasRestantes;
+          const nivel = dias <= 0 ? 'critico' : dias === 1 ? 'alerta' : 'proximo';
+          const texto = dias <= 0 ? 'Vence hoy' : dias === 1 ? 'Vence mañana' : `En ${dias} días`;
+          const contenedor = nivel === 'critico'
+            ? 'border-l-4 border-red-500 bg-red-50/70 ring-1 ring-red-100'
+            : nivel === 'alerta'
+              ? 'border-l-4 border-amber-400 bg-white ring-1 ring-zinc-100'
+              : 'border-l-4 border-zinc-200 bg-white ring-1 ring-zinc-100';
+          const avatar = nivel === 'critico' ? 'bg-red-600 text-white' : nivel === 'alerta' ? 'bg-amber-500 text-white' : 'bg-zinc-700 text-white';
+          const etiqueta = nivel === 'critico' ? 'bg-red-600 text-white' : nivel === 'alerta' ? 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20' : 'bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-500/20';
+          const esCritico = nivel === 'critico';
+          const avatarSize = esCritico ? 'h-12 w-12 text-base' : 'h-10 w-10 text-sm';
+          const nombreSize = esCritico ? 'text-base' : 'text-sm';
+          const padding = esCritico ? 'p-5' : 'p-4';
+
+          return `
+            <div data-alerta-id="${alerta.id}" class="flex flex-col gap-4 rounded-xl sm:flex-row sm:items-center sm:justify-between ${contenedor} ${padding}">
+              <div class="flex items-center gap-3">
+                <span class="flex shrink-0 items-center justify-center rounded-full font-bold ${avatar} ${avatarSize}">
+                  ${iniciales(alerta.nombre)}
+                </span>
+                <div>
+                  ${esCritico ? `<p class="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-red-600"><span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span></span>Urgente</p>` : ''}
+                  <p class="font-semibold text-zinc-900 ${nombreSize}">${alerta.nombre}</p>
+                  <p class="text-xs text-zinc-500">${alerta.plan} · DNI ${alerta.dni}</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3 sm:justify-end">
+                <span class="rounded-full px-2.5 py-1 text-xs font-bold ${etiqueta}">${texto}</span>
+                <div class="flex items-center gap-2">
+                  <a href="https://wa.me/?text=${encodeURIComponent(`Hola ${alerta.nombre}! Te escribimos del gimnasio para avisarte que tu pase vence el ${formatFecha(alerta.fechaVencimiento)}. ¿Querés que te lo renovemos para que sigas entrenando sin cortes? 💪`)}" target="_blank" rel="noopener noreferrer" aria-label="Enviar WhatsApp a ${alerta.nombre}" class="flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366] text-white transition-transform hover:scale-105">
+                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.74 13.6L3 21l4.55-1.2A9 9 0 1 0 12 3Z" /></svg>
+                  </a>
+                  <button type="button" data-renovar data-cliente-id="${alerta.id}" class="rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-700">
+                    Renovar pase
+                  </button>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+      }
+    }
+
+    // ── 4. Botones Renovar ─────────────────────────────────────────
+
+    document.querySelectorAll<HTMLButtonElement>('[data-renovar]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const clienteId = boton.dataset.clienteId;
+        if (!clienteId) return;
+        window.location.href = `/dashboard/clientes?editar=${clienteId}`;
+      });
+    });
+  }
+
+  void cargarDashboard();
+</script>

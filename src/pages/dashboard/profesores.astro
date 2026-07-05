@@ -1,0 +1,729 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import Paginacion from '../../components/Paginacion.astro';
+
+const iconUsers = `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />`;
+const iconPlus = `<path d="M12 5v14M5 12h14" />`;
+const iconSearch = `<circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />`;
+---
+
+<DashboardLayout title="Profesores">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between gap-3 w-full">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Profesores</h1>
+        <p class="mt-1 text-sm text-zinc-500">Gestión de entrenadores y sus alumnos asignados.</p>
+      </div>
+      <button
+        id="btn-nuevo-profesor"
+        type="button"
+        aria-haspopup="dialog"
+        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4" set:html={iconPlus} />
+        Registrar Profesor
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div id="profesores-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        <path d="M12 9v4M12 17h.01" />
+      </svg>
+      <div class="flex-1">
+        <span id="profesores-error-mensaje"></span>
+        <button id="btn-reintentar" type="button" class="ml-2 font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    </div>
+
+    <!-- Cargando -->
+    <p id="profesores-cargando" class="px-1 py-10 text-center text-sm text-zinc-500">Cargando profesores…</p>
+
+    <!-- Vacío -->
+    <div id="profesores-vacio" class="hidden flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-8 py-16 text-center">
+      <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7" set:html={iconUsers} />
+      </span>
+      <div class="space-y-1.5">
+        <p class="text-base font-semibold text-zinc-800">No hay profesores registrados</p>
+        <p class="max-w-xs text-sm leading-relaxed text-zinc-500">
+          Registrá el primer profesor para empezar a asignar alumnos.
+        </p>
+      </div>
+      <button
+        id="btn-nuevo-profesor-vacio"
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4" set:html={iconPlus} />
+        Registrar Profesor
+      </button>
+    </div>
+
+    <!-- Contenido principal -->
+    <div id="profesores-contenido" class="hidden space-y-4">
+      <!-- Barra de filtros -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="relative flex-1 max-w-xs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" set:html={iconSearch} />
+          <input
+            id="input-buscar"
+            type="text"
+            placeholder="Buscar profesor…"
+            autocomplete="off"
+            class="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-zinc-200">
+            <thead class="bg-zinc-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Nombre</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">DNI</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Horario</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Alumnos</th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Sueldo Proyectado</th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-profesores" class="divide-y divide-zinc-100"></tbody>
+          </table>
+        </div>
+        <p id="sin-resultados" class="hidden px-6 py-10 text-center text-sm text-zinc-500">No se encontraron profesores con ese nombre.</p>
+      </div>
+      <Paginacion id="pag-profesores" />
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Profesor -->
+  <div id="modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/50 p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="modal-titulo" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h2 id="modal-titulo" class="text-lg font-semibold text-zinc-900">Registrar Profesor</h2>
+        <button id="btn-cerrar-modal" type="button" aria-label="Cerrar" class="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="form-nuevo-profesor" class="mt-5 space-y-4">
+        <div>
+          <label for="input-nombre" class="block text-sm font-medium text-zinc-700">Nombre completo del Profesor</label>
+          <input
+            id="input-nombre"
+            name="nombre"
+            type="text"
+            required
+            autocomplete="off"
+            placeholder="Ej: Juan Pérez"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="input-dni" class="block text-sm font-medium text-zinc-700">DNI</label>
+            <input
+              id="input-dni"
+              name="dni"
+              type="text"
+              required
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="Ej: 40998221"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label for="input-password" class="block text-sm font-medium text-zinc-700">Contraseña</label>
+            <input
+              id="input-password"
+              name="password"
+              type="password"
+              required
+              autocomplete="off"
+              placeholder="••••••••"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label for="input-horario" class="block text-sm font-medium text-zinc-700">Horario</label>
+          <input
+            id="input-horario"
+            name="horario"
+            type="text"
+            autocomplete="off"
+            placeholder="Ej: Lunes a Viernes 8-12hs"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="input-horas-semanales" class="block text-sm font-medium text-zinc-700">Horas Semanales Trabajadas</label>
+            <input
+              id="input-horas-semanales"
+              name="horas_semanales"
+              type="number"
+              min="1"
+              required
+              placeholder="Ej: 20"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label for="input-pago-hora" class="block text-sm font-medium text-zinc-700">Pago por Hora ($)</label>
+            <input
+              id="input-pago-hora"
+              name="pago_por_hora"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label for="input-comision-alumno" class="block text-sm font-medium text-zinc-700">Comisión por Alumno ($)</label>
+          <input
+            id="input-comision-alumno"
+            name="comision_por_alumno"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+
+        <p id="form-error" class="hidden text-sm text-red-600"></p>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="btn-cancelar-modal" class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+          <button
+            type="submit"
+            id="btn-guardar"
+            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+          >
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Editar Profesor -->
+  <div id="modal-editar-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/50 p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h2 id="modal-editar-titulo" class="text-lg font-semibold text-zinc-900">Editar Profesor</h2>
+        <button id="btn-cerrar-modal-editar" type="button" aria-label="Cerrar" class="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="form-editar-profesor" class="mt-5 space-y-4">
+        <input type="hidden" id="editar-profesor-id" name="profesor_id" />
+        <div>
+          <label for="editar-nombre" class="block text-sm font-medium text-zinc-700">Nombre completo del Profesor</label>
+          <input
+            id="editar-nombre"
+            name="nombre"
+            type="text"
+            required
+            autocomplete="off"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="editar-dni" class="block text-sm font-medium text-zinc-700">DNI</label>
+            <input
+              id="editar-dni"
+              name="dni"
+              type="text"
+              required
+              inputmode="numeric"
+              autocomplete="off"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label for="editar-password" class="block text-sm font-medium text-zinc-700">Contraseña</label>
+            <input
+              id="editar-password"
+              name="password"
+              type="password"
+              autocomplete="off"
+              placeholder="Dejar vacío para no cambiar"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label for="editar-horario" class="block text-sm font-medium text-zinc-700">Horario</label>
+          <input
+            id="editar-horario"
+            name="horario"
+            type="text"
+            autocomplete="off"
+            placeholder="Ej: Lunes a Viernes 8-12hs"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="editar-horas-semanales" class="block text-sm font-medium text-zinc-700">Horas Semanales Trabajadas</label>
+            <input
+              id="editar-horas-semanales"
+              name="horas_semanales"
+              type="number"
+              min="1"
+              required
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label for="editar-pago-hora" class="block text-sm font-medium text-zinc-700">Pago por Hora ($)</label>
+            <input
+              id="editar-pago-hora"
+              name="pago_por_hora"
+              type="number"
+              step="0.01"
+              min="0"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label for="editar-comision-alumno" class="block text-sm font-medium text-zinc-700">Comisión por Alumno ($)</label>
+          <input
+            id="editar-comision-alumno"
+            name="comision_por_alumno"
+            type="number"
+            step="0.01"
+            min="0"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+
+        <p id="form-editar-error" class="hidden text-sm text-red-600"></p>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="btn-cancelar-modal-editar" class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+          <button
+            type="submit"
+            id="btn-guardar-edicion"
+            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { itemsPagina, renderizarPaginacion, type EstadoPagina } from '../../lib/paginacion';
+
+  const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
+
+  interface ProfesorRow {
+    id: string;
+    nombre: string;
+    dni: string | null;
+    horario: string | null;
+    horas_semanales: number | null;
+    pago_por_hora: number | null;
+    comision_por_alumno: number | null;
+  }
+
+  let todosLosProfesores: ProfesorRow[] = [];
+  let alumnosPorProfesor: Record<string, number> = {};
+  let textoBusqueda = '';
+  let estadoPagina: EstadoPagina = { items: [], paginaActual: 1 };
+
+  const cargandoEl = document.getElementById('profesores-cargando');
+  const vacioEl = document.getElementById('profesores-vacio');
+  const contenidoEl = document.getElementById('profesores-contenido');
+  const tablaEl = document.getElementById('tabla-profesores');
+  const sinResultados = document.getElementById('sin-resultados');
+  const errorEl = document.getElementById('profesores-error');
+  const errorMensajeEl = document.getElementById('profesores-error-mensaje');
+  const btnReintentar = document.getElementById('btn-reintentar');
+  const inputBuscar = document.getElementById('input-buscar') as HTMLInputElement | null;
+
+  const modalOverlay = document.getElementById('modal-overlay');
+  const formNuevo = document.getElementById('form-nuevo-profesor') as HTMLFormElement | null;
+  const formError = document.getElementById('form-error');
+  const btnGuardar = document.getElementById('btn-guardar') as HTMLButtonElement | null;
+
+  const modalEditarOverlay = document.getElementById('modal-editar-overlay');
+  const formEditar = document.getElementById('form-editar-profesor') as HTMLFormElement | null;
+  const editarProfesorId = document.getElementById('editar-profesor-id') as HTMLInputElement | null;
+  const editarNombre = document.getElementById('editar-nombre') as HTMLInputElement | null;
+  const editarHorario = document.getElementById('editar-horario') as HTMLInputElement | null;
+  const editarDni = document.getElementById('editar-dni') as HTMLInputElement | null;
+  const editarPassword = document.getElementById('editar-password') as HTMLInputElement | null;
+  const editarHorasSemanales = document.getElementById('editar-horas-semanales') as HTMLInputElement | null;
+  const editarPagoHora = document.getElementById('editar-pago-hora') as HTMLInputElement | null;
+  const editarComisionAlumno = document.getElementById('editar-comision-alumno') as HTMLInputElement | null;
+  const formEditarError = document.getElementById('form-editar-error');
+  const btnGuardarEdicion = document.getElementById('btn-guardar-edicion') as HTMLButtonElement | null;
+
+  function mostrarError(mensaje: string | null): void {
+    const hayError = mensaje !== null;
+    if (errorMensajeEl && mensaje) errorMensajeEl.textContent = mensaje;
+    errorEl?.classList.toggle('hidden', !hayError);
+    errorEl?.classList.toggle('flex', hayError);
+  }
+
+  function mostrarVacio(visible: boolean): void {
+    vacioEl?.classList.toggle('hidden', !visible);
+    vacioEl?.classList.toggle('flex', visible);
+  }
+
+  function abrirModal(): void {
+    modalOverlay?.classList.remove('hidden');
+    modalOverlay?.classList.add('flex');
+    document.getElementById('input-nombre')?.focus();
+  }
+
+  function cerrarModal(): void {
+    modalOverlay?.classList.add('hidden');
+    modalOverlay?.classList.remove('flex');
+    formNuevo?.reset();
+    formError?.classList.add('hidden');
+  }
+
+  function abrirModalEditar(dataset: DOMStringMap): void {
+    if (!modalEditarOverlay || !editarProfesorId || !editarNombre) return;
+    editarProfesorId.value = dataset.id ?? '';
+    editarNombre.value = dataset.nombre ?? '';
+    if (editarDni) editarDni.value = dataset.dni ?? '';
+    if (editarPassword) editarPassword.value = '';
+    if (editarHorario) editarHorario.value = dataset.horario ?? '';
+    if (editarHorasSemanales) editarHorasSemanales.value = dataset.horasSemanales ?? '';
+    if (editarPagoHora) editarPagoHora.value = dataset.pagoPorHora ?? '';
+    if (editarComisionAlumno) editarComisionAlumno.value = dataset.comisionPorAlumno ?? '';
+    formEditarError?.classList.add('hidden');
+    modalEditarOverlay.classList.remove('hidden');
+    modalEditarOverlay.classList.add('flex');
+    editarNombre.focus();
+  }
+
+  function cerrarModalEditar(): void {
+    modalEditarOverlay?.classList.add('hidden');
+    modalEditarOverlay?.classList.remove('flex');
+    formEditar?.reset();
+    formEditarError?.classList.add('hidden');
+  }
+
+  function crearFila(profesor: ProfesorRow): HTMLTableRowElement {
+    const fila = document.createElement('tr');
+    fila.className = 'hover:bg-zinc-50 transition-colors';
+    fila.dataset.id = profesor.id;
+
+    const totalAlumnos = alumnosPorProfesor[profesor.id] ?? 0;
+    const horasSemanales = profesor.horas_semanales ?? 0;
+    const pagoHora = profesor.pago_por_hora ?? 0;
+    const comisionAlumno = profesor.comision_por_alumno ?? 0;
+    const sueldo = (pagoHora * horasSemanales * 4) + (totalAlumnos * comisionAlumno);
+
+    fila.innerHTML = `
+      <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900">${profesor.nombre}</td>
+      <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${profesor.dni ?? '—'}</td>
+      <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">
+        <span>${profesor.horario ?? '—'}</span>
+        ${horasSemanales > 0 ? `<span class="ml-1.5 inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">${horasSemanales} hs/sem</span>` : ''}
+      </td>
+      <td class="whitespace-nowrap px-6 py-4 text-sm">
+        <a
+          href="/dashboard/clientes?profesor=${profesor.id}"
+          class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+            totalAlumnos > 0
+              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+              : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+          }"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          ${totalAlumnos} alumno${totalAlumnos !== 1 ? 's' : ''}
+        </a>
+      </td>
+      <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-emerald-700">$${sueldo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td class="whitespace-nowrap px-6 py-4 text-right">
+        <button
+          type="button"
+          data-editar
+          data-id="${profesor.id}"
+          data-nombre="${profesor.nombre}"
+          data-dni="${profesor.dni ?? ''}"
+          data-horario="${profesor.horario ?? ''}"
+          data-horas-semanales="${profesor.horas_semanales ?? ''}"
+          data-pago-por-hora="${profesor.pago_por_hora ?? ''}"
+          data-comision-por-alumno="${profesor.comision_por_alumno ?? ''}"
+          class="inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+          aria-label="Editar profesor"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+            <path d="m15 5 4 4" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          data-eliminar
+          data-id="${profesor.id}"
+          data-nombre="${profesor.nombre}"
+          class="inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
+          aria-label="Eliminar profesor"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+          </svg>
+        </button>
+      </td>
+    `;
+
+    return fila;
+  }
+
+  function aplicarFiltros(): void {
+    const busqueda = textoBusqueda.toLowerCase();
+    const filtrados = todosLosProfesores.filter((p) =>
+      p.nombre.toLowerCase().includes(busqueda)
+    );
+
+    estadoPagina.items = filtrados;
+
+    if (estadoPagina.paginaActual > Math.ceil(filtrados.length / 10)) {
+      estadoPagina.paginaActual = 1;
+    }
+
+    if (tablaEl) tablaEl.innerHTML = '';
+
+    const paginaItems = itemsPagina(filtrados, estadoPagina.paginaActual);
+
+    if (filtrados.length === 0 && todosLosProfesores.length > 0) {
+      sinResultados?.classList.remove('hidden');
+    } else {
+      sinResultados?.classList.add('hidden');
+      paginaItems.forEach((p) => tablaEl?.appendChild(crearFila(p)));
+    }
+
+    renderizarPaginacion('pag-profesores', estadoPagina, (p) => {
+      estadoPagina.paginaActual = p;
+      aplicarFiltros();
+    });
+  }
+
+  function actualizarVisibilidad(): void {
+    const hayDatos = todosLosProfesores.length > 0;
+    cargandoEl?.classList.add('hidden');
+    mostrarVacio(!hayDatos);
+    contenidoEl?.classList.toggle('hidden', !hayDatos);
+  }
+
+  async function cargarDatos(): Promise<void> {
+    mostrarError(null);
+    if (cargandoEl) cargandoEl.hidden = false;
+    contenidoEl?.classList.add('hidden');
+    mostrarVacio(false);
+
+    const res = await fetch('/api/admin/profesores');
+    const json = await res.json();
+
+    if (!res.ok || json.error) {
+      mostrarError(`No se pudieron cargar los datos: ${json.error ?? 'Error desconocido'}`);
+      if (cargandoEl) cargandoEl.hidden = true;
+      return;
+    }
+
+    todosLosProfesores = (json.profesores ?? []) as ProfesorRow[];
+    alumnosPorProfesor = json.alumnosPorProfesor ?? {};
+
+    actualizarVisibilidad();
+    aplicarFiltros();
+  }
+
+  async function eliminarProfesor(id: string, nombre: string): Promise<void> {
+    const confirmado = window.confirm(`¿Eliminar al profesor "${nombre}"? Esta acción no se puede deshacer.`);
+    if (!confirmado) return;
+
+    const res = await fetch('/api/admin/profesores', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const json = await res.json();
+
+    if (!res.ok || json.error) {
+      mostrarError(`No se pudo eliminar: ${json.error ?? 'Error desconocido'}`);
+      return;
+    }
+
+    await cargarDatos();
+  }
+
+  inputBuscar?.addEventListener('input', () => {
+    textoBusqueda = inputBuscar.value;
+    estadoPagina.paginaActual = 1;
+    aplicarFiltros();
+  });
+
+  document.getElementById('btn-nuevo-profesor')?.addEventListener('click', abrirModal);
+  document.getElementById('btn-nuevo-profesor-vacio')?.addEventListener('click', abrirModal);
+  document.getElementById('btn-cerrar-modal')?.addEventListener('click', cerrarModal);
+  document.getElementById('btn-cancelar-modal')?.addEventListener('click', cerrarModal);
+  btnReintentar?.addEventListener('click', cargarDatos);
+
+  formNuevo?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (!formNuevo || !btnGuardar) return;
+
+    const datos = new FormData(formNuevo);
+    const nombre = (datos.get('nombre') as string)?.trim();
+    const dni = (datos.get('dni') as string)?.trim() || null;
+    const password = (datos.get('password') as string)?.trim() || null;
+    const horario = (datos.get('horario') as string)?.trim() || null;
+    const horasSemanales = parseInt(datos.get('horas_semanales') as string, 10) || 0;
+    const pagoPorHora = parseFloat(datos.get('pago_por_hora') as string) || 0;
+    const comisionPorAlumno = parseFloat(datos.get('comision_por_alumno') as string) || 0;
+
+    if (!nombre) {
+      if (formError) {
+        formError.textContent = 'Completá el nombre del profesor.';
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando…';
+
+    const res = await fetch('/api/admin/profesores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre,
+        dni,
+        password,
+        horario,
+        horas_semanales: horasSemanales,
+        pago_por_hora: pagoPorHora,
+        comision_por_alumno: comisionPorAlumno,
+      }),
+    });
+    const json = await res.json();
+
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = 'Guardar';
+
+    if (!res.ok || json.error) {
+      if (formError) {
+        formError.textContent = `Error: ${json.error ?? 'Error desconocido'}`;
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    cerrarModal();
+    await cargarDatos();
+  });
+
+  tablaEl?.addEventListener('click', (evento) => {
+    const btnEliminar = (evento.target as HTMLElement).closest('[data-eliminar]') as HTMLElement | null;
+    if (btnEliminar) {
+      const id = btnEliminar.dataset.id;
+      const nombre = btnEliminar.dataset.nombre;
+      if (id && nombre) void eliminarProfesor(id, nombre);
+      return;
+    }
+
+    const btnEditar = (evento.target as HTMLElement).closest('[data-editar]') as HTMLElement | null;
+    if (btnEditar) {
+      abrirModalEditar(btnEditar.dataset);
+    }
+  });
+
+  document.getElementById('btn-cerrar-modal-editar')?.addEventListener('click', cerrarModalEditar);
+  document.getElementById('btn-cancelar-modal-editar')?.addEventListener('click', cerrarModalEditar);
+
+  modalEditarOverlay?.addEventListener('click', (evento) => {
+    if (evento.target === modalEditarOverlay) cerrarModalEditar();
+  });
+
+  formEditar?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (!formEditar || !btnGuardarEdicion || !editarProfesorId) return;
+
+    const datos = new FormData(formEditar);
+    const profesorId = editarProfesorId.value;
+    const nombre = (datos.get('nombre') as string)?.trim();
+    const dni = (datos.get('dni') as string)?.trim() || null;
+    const password = (datos.get('password') as string)?.trim() || null;
+    const horario = (datos.get('horario') as string)?.trim() || null;
+    const horasSemanales = parseInt(datos.get('horas_semanales') as string, 10) || 0;
+    const pagoPorHora = parseFloat(datos.get('pago_por_hora') as string) || 0;
+    const comisionPorAlumno = parseFloat(datos.get('comision_por_alumno') as string) || 0;
+
+    if (!nombre) {
+      if (formEditarError) {
+        formEditarError.textContent = 'Completá el nombre del profesor.';
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    btnGuardarEdicion.disabled = true;
+    btnGuardarEdicion.textContent = 'Guardando…';
+
+    const res = await fetch('/api/admin/profesores', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: profesorId,
+        nombre,
+        dni,
+        password,
+        horario,
+        horas_semanales: horasSemanales,
+        pago_por_hora: pagoPorHora,
+        comision_por_alumno: comisionPorAlumno,
+      }),
+    });
+    const json = await res.json();
+
+    btnGuardarEdicion.disabled = false;
+    btnGuardarEdicion.textContent = 'Guardar Cambios';
+
+    if (!res.ok || json.error) {
+      if (formEditarError) {
+        formEditarError.textContent = `Error: ${json.error ?? 'Error desconocido'}`;
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    cerrarModalEditar();
+    await cargarDatos();
+  });
+
+  void cargarDatos();
+</script>

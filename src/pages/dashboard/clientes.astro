@@ -1,0 +1,1184 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import Paginacion from '../../components/Paginacion.astro';
+
+const iconPlus = `<path d="M12 5v14M5 12h14" />`;
+const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19v-1c0-2.21 2.686-4 6-4s6 1.79 6 4v1" /><path d="M16 8a2.5 2.5 0 1 0 0-5" /><path d="M19 19v-1c0-1.657-1.79-3-4-3" />`;
+---
+
+<DashboardLayout title="Clientes">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between gap-3 w-full">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Clientes</h1>
+        <p class="mt-1 text-sm text-zinc-500">Alumnos activos del gimnasio con plan y vencimiento asignados.</p>
+      </div>
+      <button
+        id="btn-nuevo-cliente"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="modal-overlay"
+        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4" set:html={iconPlus} />
+        Nuevo Cliente
+      </button>
+    </div>
+
+    <div id="clientes-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        <path d="M12 9v4M12 17h.01" />
+      </svg>
+      <div class="flex-1">
+        <span id="clientes-error-mensaje"></span>
+        <button id="btn-reintentar" type="button" class="ml-2 font-semibold underline hover:no-underline">Reintentar</button>
+      </div>
+    </div>
+
+    <p id="clientes-cargando" class="px-1 py-10 text-center text-sm text-zinc-500">Cargando alumnos…</p>
+
+    <div id="clientes-vacio" class="hidden flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-8 py-16 text-center">
+      <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7" set:html={iconUsers} />
+      </span>
+      <div class="space-y-1.5">
+        <p class="text-base font-semibold text-zinc-800">Todavía no tenés alumnos</p>
+        <p class="max-w-xs text-sm leading-relaxed text-zinc-500">
+          Registrá tu primer cliente y asignale un plan del catálogo.
+        </p>
+      </div>
+      <button
+        id="btn-nuevo-cliente-vacio"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="modal-overlay"
+        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4" set:html={iconPlus} />
+        Nuevo Cliente
+      </button>
+    </div>
+
+    <div id="clientes-contenido" class="hidden max-w-5xl w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full table-fixed border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-zinc-200 bg-zinc-50/75">
+                <th scope="col" class="w-[22%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Nombre</th>
+                <th scope="col" class="w-[10%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">DNI</th>
+                <th scope="col" class="w-[20%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Plan</th>
+                <th scope="col" class="w-[16%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Vencimiento</th>
+                <th scope="col" class="w-[14%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Estado</th>
+                <th scope="col" class="w-[18%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-clientes"></tbody>
+          </table>
+        </div>
+      <Paginacion id="pag-clientes" />
+      </div>
+      
+    <template id="template-fila-cliente">
+      <tr class="border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/50">
+        <td data-col="nombre" class="px-6 py-4 text-sm font-semibold text-zinc-900 whitespace-nowrap"></td>
+        <td data-col="dni" class="px-6 py-4 text-sm tabular-nums text-zinc-600 whitespace-nowrap"></td>
+        <td data-col="plan" class="px-6 py-4 text-sm text-zinc-600 whitespace-nowrap"></td>
+        <td data-col="vencimiento" class="px-6 py-4 text-sm tabular-nums text-zinc-600 whitespace-nowrap"></td>
+        <td data-col="estado" class="px-6 py-4 text-sm whitespace-nowrap"></td>
+        <td data-col="acciones" class="px-6 py-4 text-sm whitespace-nowrap">
+          <button
+            type="button"
+            data-id=""
+            data-nombre=""
+            data-dni=""
+            data-plan=""
+            data-profesorid=""
+            data-fechavencimiento=""
+            data-monto=""
+            class="btn-editar inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+            aria-label="Editar cliente"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+              <path d="m15 5 4 4" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-id=""
+            data-nombre=""
+            class="btn-eliminar inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            aria-label="Eliminar cliente"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+              <path d="M3 6h18" />
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </template>
+  </div>
+
+  <div id="modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/50 p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="modal-titulo" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h2 id="modal-titulo" class="text-lg font-semibold text-zinc-900">Nuevo Cliente</h2>
+        <button id="btn-cerrar-modal" type="button" aria-label="Cerrar" class="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="form-nuevo-cliente" class="mt-5 space-y-4">
+        <div>
+          <label for="input-nombre" class="block text-sm font-medium text-zinc-700">Nombre completo</label>
+          <input
+            id="input-nombre"
+            name="nombre"
+            type="text"
+            required
+            autocomplete="off"
+            placeholder="Ej: Romina Acosta"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label for="input-dni" class="block text-sm font-medium text-zinc-700">DNI</label>
+          <input
+            id="input-dni"
+            name="dni"
+            type="text"
+            required
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="Ej: 40998221"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label for="input-telefono" class="block text-sm font-medium text-zinc-700">Teléfono (WhatsApp)</label>
+          <input
+            id="input-telefono"
+            name="telefono"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="Ej: 5491155551234"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <p class="mt-1.5 text-xs text-zinc-500">Código de país + número. Ej: 5491155551234</p>
+        </div>
+        <div>
+          <label for="select-plan" class="block text-sm font-medium text-zinc-700">Plan</label>
+          <select
+            id="select-plan"
+            name="plan_id"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          >
+            <option value="" disabled selected>Cargando planes…</option>
+          </select>
+          <p id="select-plan-aviso" class="mt-1.5 hidden text-xs text-amber-600">
+            No hay planes en el catálogo. Creá uno en la sección Planes antes de asignar.
+          </p>
+        </div>
+        <div>
+          <label for="input-monto" class="block text-sm font-medium text-zinc-700">Monto abonado</label>
+          <input
+            id="input-monto"
+            name="monto_pagado"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <p class="mt-1.5 text-xs text-zinc-500">Se completa automáticamente al elegir un plan.</p>
+        </div>
+        <div>
+          <label for="input-vencimiento" class="block text-sm font-medium text-zinc-700">Fecha de vencimiento</label>
+          <input
+            id="input-vencimiento"
+            name="fecha_vencimiento"
+            type="date"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label for="input-metodo-pago" class="block text-sm font-medium text-zinc-700">Método de pago</label>
+          <select
+            id="input-metodo-pago"
+            name="metodo_pago"
+            class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          >
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+          </select>
+        </div>
+        <div>
+          <label for="select-profesor" class="block text-sm font-medium text-zinc-700">Profesor Asignado</label>
+          <select
+            id="select-profesor"
+            name="profesor_id"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          >
+            <option value="" disabled selected>Cargando profesores…</option>
+          </select>
+        </div>
+
+        <p id="form-error" class="hidden text-sm text-red-600"></p>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="btn-cancelar-modal" class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+          <button
+            type="submit"
+            id="btn-guardar-cliente"
+            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+          >
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</DashboardLayout>
+
+<div id="modal-editar-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/50 p-4">
+  <div role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 id="modal-editar-titulo" class="text-lg font-semibold text-zinc-900">Editar Cliente</h2>
+      <button id="btn-cerrar-modal-editar" type="button" aria-label="Cerrar" class="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5">
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </div>
+
+    <form id="form-editar-cliente" class="mt-5 space-y-4">
+      <input type="hidden" id="editar-cliente-id" name="cliente_id" />
+      <div>
+        <label for="editar-nombre" class="block text-sm font-medium text-zinc-700">Nombre completo</label>
+          <input
+            id="editar-nombre"
+            name="nombre"
+            type="text"
+            required
+            autocomplete="off"
+          class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div>
+        <label for="editar-dni" class="block text-sm font-medium text-zinc-700">DNI</label>
+          <input
+            id="editar-dni"
+            name="dni"
+            type="text"
+            required
+            inputmode="numeric"
+            autocomplete="off"
+          class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div>
+        <label for="editar-telefono" class="block text-sm font-medium text-zinc-700">Teléfono (WhatsApp)</label>
+        <input
+          id="editar-telefono"
+          name="telefono"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="Ej: 5491155551234"
+          class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+      <div>
+        <label for="editar-plan" class="block text-sm font-medium text-zinc-700">Plan</label>
+        <select
+          id="editar-plan"
+          name="plan_id"
+          required
+          class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="" disabled selected>Cargando planes...</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="editar-fecha-vencimiento" class="block text-sm font-medium text-zinc-700">Fecha de vencimiento</label>
+        <input
+          id="editar-fecha-vencimiento"
+          name="fecha_vencimiento"
+          type="date"
+          class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+      </div>
+
+      <div>
+        <label for="editar-monto" class="block text-sm font-medium text-zinc-700">Monto abonado</label>
+        <input
+          id="editar-monto"
+          name="monto_pagado"
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="0.00"
+          class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+        <p class="mt-1.5 text-xs text-zinc-500">Si ingresás un monto mayor a 0 se registra un nuevo pago en el historial de caja.</p>
+      </div>
+      <div>
+        <label for="editar-metodo-pago" class="block text-sm font-medium text-zinc-700">Método de pago</label>
+        <select
+          id="editar-metodo-pago"
+          name="metodo_pago"
+          class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+        </select>
+      </div>
+      <div>
+        <label for="editar-profesor" class="block text-sm font-medium text-zinc-700">Profesor Asignado</label>
+        <select
+          id="editar-profesor"
+          name="profesor_id"
+          required
+          class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="" disabled selected>Seleccioná un profesor</option>
+        </select>
+      </div>
+
+      <p id="form-editar-error" class="hidden text-sm text-red-600"></p>
+
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <button
+          type="button"
+          id="btn-eliminar-cliente"
+          class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+        >
+          Eliminar Cliente
+        </button>
+        <div class="flex gap-2">
+          <button type="button" id="btn-cancelar-modal-editar" class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+          <button
+            type="submit"
+            id="btn-guardar-edicion"
+            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { POR_PAGINA, itemsPagina, renderizarPaginacion, type EstadoPagina } from '../../lib/paginacion';
+
+  const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
+
+  function resolverGimnasioId(): string {
+    return GIMNASIO_ID;
+  }
+
+  interface PlanOption {
+    id: string;
+    nombre: string;
+    precio: number;
+  }
+
+  interface ProfesorOption {
+    id: string;
+    nombre: string;
+  }
+
+  interface ClienteRow {
+    id: string;
+    nombre: string;
+    dni: string;
+    telefono: string | null;
+    plan_id: string | null;
+    profesor_id: string | null;
+  }
+
+  /**
+   * Fila de la tabla "pagos". fecha_vencimiento, fecha_pago y monto_pagado
+   * vivían antes en "clientes"; con la base 100% normalizada, "pagos" es la
+   * única fuente de verdad para esos tres datos.
+   */
+  interface PagoRow {
+    cliente_id: string;
+    fecha_pago: string | null;
+    fecha_vencimiento: string | null;
+    monto_pagado: number | null;
+  }
+
+  /** Cliente ya combinado con los datos de su último pago, listo para pintar la fila. */
+  interface ClienteConPago extends ClienteRow {
+    fecha_pago: string | null;
+    fecha_vencimiento: string | null;
+    monto_pagado: number | null;
+  }
+
+  const cargandoEl = document.getElementById('clientes-cargando');
+  const vacioEl = document.getElementById('clientes-vacio');
+  const contenidoEl = document.getElementById('clientes-contenido');
+  const tablaClientes = document.getElementById('tabla-clientes');
+  const templateFilaCliente = document.getElementById('template-fila-cliente') as HTMLTemplateElement | null;
+  const errorEl = document.getElementById('clientes-error');
+  const errorMensajeEl = document.getElementById('clientes-error-mensaje');
+  const btnReintentar = document.getElementById('btn-reintentar');
+
+  const modalOverlay = document.getElementById('modal-overlay');
+  const formNuevoCliente = document.getElementById('form-nuevo-cliente') as HTMLFormElement | null;
+  const selectPlan = document.getElementById('select-plan') as HTMLSelectElement | null;
+  const selectPlanAviso = document.getElementById('select-plan-aviso');
+  const selectProfesor = document.getElementById('select-profesor') as HTMLSelectElement | null;
+  const inputMonto = document.getElementById('input-monto') as HTMLInputElement | null;
+  const formError = document.getElementById('form-error');
+  const btnGuardarCliente = document.getElementById('btn-guardar-cliente') as HTMLButtonElement | null;
+
+  let planesCatalogo: PlanOption[] = [];
+  let profesoresCatalogo: ProfesorOption[] = [];
+  let estadoPagina: EstadoPagina = { items: [], paginaActual: 1 };
+  let mapaPlanesGlobal = new Map<string, string>();
+
+  function formatFecha(iso: string | null): string {
+    if (!iso) return '—';
+    const [year, month, day] = iso.split('-');
+    if (!year || !month || !day) return iso;
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Normaliza un valor de fecha proveniente de Supabase (columna DATE o
+   * TIMESTAMPTZ) al formato YYYY-MM-DD que requiere un <input type="date">.
+   * Evita que el input quede vacío por una diferencia de formato.
+   */
+  function aFechaInput(valor: string | null | undefined): string {
+    if (!valor) return '';
+    const [fecha] = valor.split('T');
+    return fecha ?? '';
+  }
+
+  /** Fecha de hoy en formato YYYY-MM-DD, en horario local. */
+  function hoyISO(): string {
+    const ahora = new Date();
+    const year = ahora.getFullYear();
+    const month = String(ahora.getMonth() + 1).padStart(2, '0');
+    const day = String(ahora.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Saneamiento de datos de formulario antes de tocar Supabase.
+  //
+  // Estas funciones son el único lugar donde se interpretan los valores
+  // crudos de FormData. El objetivo es que ningún insert/update mande
+  // '', undefined, NaN o un id corrupto a una columna que no lo acepta:
+  // Postgres rechaza esos valores (NOT NULL, tipo numeric/date/uuid
+  // inválido) y, según la causa exacta, Supabase puede reportarlo con
+  // mensajes distintos, incluido a veces el de row-level security.
+  // ─────────────────────────────────────────────────────────────────────
+
+  const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  /** Texto obligatorio: recorta espacios. Nunca null/undefined; quien
+   *  llama valida que el resultado no sea '' antes de insertar. */
+  function aTextoRequerido(valor: FormDataEntryValue | null): string {
+    return String(valor ?? '').trim();
+  }
+
+  /**
+   * Fecha de un <input type="date">. Si está vacía devuelve null (no '',
+   * que Postgres rechaza para una columna DATE) y valida el formato
+   * YYYY-MM-DD para no enviar basura si el valor fue manipulado fuera
+   * del date picker.
+   */
+  function aFechaONull(valor: FormDataEntryValue | null): string | null {
+    const texto = String(valor ?? '').trim();
+    if (texto === '') return null;
+    return FECHA_REGEX.test(texto) ? texto : null;
+  }
+
+  /**
+   * Monto numérico. Si el campo está vacío, no es un número finito o es
+   * negativo, devuelve `fallback` (0 por defecto) en lugar de NaN,
+   * undefined o ''. Así monto_pagado siempre llega a Supabase como un
+   * número válido.
+   */
+  function aMontoValido(valor: FormDataEntryValue | null, fallback = 0): number {
+    const texto = String(valor ?? '').trim();
+    if (texto === '') return fallback;
+    const numero = Number(texto);
+    return Number.isFinite(numero) && numero >= 0 ? numero : fallback;
+  }
+
+  /** Valida forma de UUID antes de usar un valor como FK (plan_id,
+   *  cliente_id, gimnasio_id). Evita pegarle a la red con un id vacío o
+   *  corrupto que Postgres rechazaría de todas formas. */
+  function esUUIDValido(valor: string | null | undefined): valor is string {
+    return !!valor && UUID_REGEX.test(valor);
+  }
+
+  interface PagoInsert {
+    gimnasio_id: string;
+    cliente_id: string;
+    plan_id: string;
+    fecha_pago: string;
+    fecha_vencimiento: string | null;
+    monto_pagado: number;
+    metodo_pago: string;
+  }
+
+  /**
+   * Punto único de armado del payload para 'pagos'. Centralizar esto
+   * evita que los dos lugares que insertan pagos (alta de cliente y
+   * edición) terminen usando nombres de columna distintos o datos sin
+   * sanear.
+   */
+  function construirPago(datos: {
+    gimnasioId: string;
+    clienteId: string;
+    planId: string;
+    fechaVencimiento: string | null;
+    montoPagado: number;
+    metodoPago: string;
+  }): PagoInsert {
+    return {
+      gimnasio_id: datos.gimnasioId,
+      cliente_id: datos.clienteId,
+      plan_id: datos.planId,
+      fecha_pago: hoyISO(),
+      fecha_vencimiento: datos.fechaVencimiento,
+      monto_pagado: datos.montoPagado,
+      metodo_pago: datos.metodoPago,
+    };
+  }
+
+  interface EstadoInfo {
+    texto: string;
+    clases: string;
+  }
+
+  /**
+   * Compara fecha_vencimiento contra la fecha actual de forma estricta.
+   * Las columnas DATE de Postgres llegan como 'YYYY-MM-DD', por lo que la
+   * comparación lexicográfica de strings es cronológicamente correcta y
+   * evita los corrimientos de un día típicos de comparar objetos Date
+   * en distintas zonas horarias.
+   */
+  function calcularEstado(fechaVencimiento: string | null): EstadoInfo {
+    if (!fechaVencimiento) {
+      return { texto: 'Sin Registrar', clases: 'bg-zinc-100 text-zinc-500 ring-zinc-200' };
+    }
+
+    if (fechaVencimiento < hoyISO()) {
+      return { texto: 'Vencido', clases: 'bg-red-50 text-red-700 ring-red-200' };
+    }
+
+    return { texto: 'Activo', clases: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
+  }
+
+  function crearBadgeEstado(estado: EstadoInfo): HTMLSpanElement {
+    const badge = document.createElement('span');
+    badge.className = `inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${estado.clases}`;
+    badge.textContent = estado.texto;
+    return badge;
+  }
+
+  function resolverNombrePlan(planId: string | null, mapaPlanes: Map<string, string>): string {
+    if (!planId) return '—';
+    return mapaPlanes.get(planId) ?? 'Plan no encontrado';
+  }
+
+  function mostrarError(mensaje: string | null): void {
+    const hayError = mensaje !== null;
+    if (errorMensajeEl && mensaje) errorMensajeEl.textContent = mensaje;
+    errorEl?.classList.toggle('hidden', !hayError);
+    errorEl?.classList.toggle('flex', hayError);
+  }
+
+  function mostrarVacio(visible: boolean): void {
+    vacioEl?.classList.toggle('hidden', !visible);
+    vacioEl?.classList.toggle('flex', visible);
+  }
+
+  function poblarSelectPlanes(planes: PlanOption[]): void {
+    if (!selectPlan) return;
+
+    selectPlan.replaceChildren();
+
+    if (planes.length === 0) {
+      const opcion = document.createElement('option');
+      opcion.value = '';
+      opcion.textContent = 'Sin planes disponibles';
+      opcion.disabled = true;
+      opcion.selected = true;
+      selectPlan.append(opcion);
+      selectPlan.disabled = true;
+      selectPlanAviso?.classList.remove('hidden');
+      return;
+    }
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Seleccioná un plan';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    selectPlan.append(placeholder);
+
+    for (const plan of planes) {
+      const opcion = document.createElement('option');
+      opcion.value = plan.id;
+      opcion.textContent = plan.nombre;
+      selectPlan.append(opcion);
+    }
+
+    selectPlan.disabled = false;
+    selectPlanAviso?.classList.add('hidden');
+  }
+
+  function poblarSelectProfesores(profesores: ProfesorOption[]): void {
+    if (!selectProfesor) return;
+    selectProfesor.replaceChildren();
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Seleccioná un profesor';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    selectProfesor.append(placeholder);
+
+    for (const profesor of profesores) {
+      const opcion = document.createElement('option');
+      opcion.value = profesor.id;
+      opcion.textContent = profesor.nombre;
+      selectProfesor.append(opcion);
+    }
+  }
+
+  function poblarSelectProfesoresEditar(profesores: ProfesorOption[]): void {
+    if (!editarProfesor) return;
+    editarProfesor.replaceChildren();
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Seleccioná un profesor';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    editarProfesor.append(placeholder);
+
+    for (const profesor of profesores) {
+      const opcion = document.createElement('option');
+      opcion.value = profesor.id;
+      opcion.textContent = profesor.nombre;
+      editarProfesor.append(opcion);
+    }
+  }
+
+  function crearFilaCliente(cliente: ClienteConPago, mapaPlanes: Map<string, string>): HTMLTableRowElement {
+    if (!templateFilaCliente?.content.firstElementChild) {
+      throw new Error('No se encontró la plantilla de fila de cliente.');
+    }
+
+    const fila = templateFilaCliente.content.firstElementChild.cloneNode(true) as HTMLTableRowElement;
+
+    const celdaNombre = fila.querySelector('[data-col="nombre"]');
+    const celdaDni = fila.querySelector('[data-col="dni"]');
+    const celdaPlan = fila.querySelector('[data-col="plan"]');
+    const celdaVencimiento = fila.querySelector('[data-col="vencimiento"]');
+    const celdaEstado = fila.querySelector('[data-col="estado"]');
+
+    if (celdaNombre) celdaNombre.textContent = cliente.nombre;
+    if (celdaDni) celdaDni.textContent = cliente.dni;
+    if (celdaPlan) celdaPlan.textContent = resolverNombrePlan(cliente.plan_id, mapaPlanes);
+    if (celdaVencimiento) celdaVencimiento.textContent = formatFecha(cliente.fecha_vencimiento);
+    if (celdaEstado) celdaEstado.replaceChildren(crearBadgeEstado(calcularEstado(cliente.fecha_vencimiento)));
+
+    const btnEditar = fila.querySelector('.btn-editar') as HTMLButtonElement | null;
+    if (btnEditar) {
+      btnEditar.dataset.id = cliente.id;
+      btnEditar.dataset.nombre = cliente.nombre;
+      btnEditar.dataset.dni = cliente.dni;
+      btnEditar.dataset.telefono = cliente.telefono ?? '';
+      btnEditar.dataset.plan = cliente.plan_id ?? '';
+      btnEditar.dataset.profesorid = cliente.profesor_id ?? '';
+      btnEditar.dataset.fechavencimiento = cliente.fecha_vencimiento ?? '';
+      btnEditar.dataset.monto = cliente.monto_pagado != null ? String(cliente.monto_pagado) : '';
+    }
+
+    const btnEliminar = fila.querySelector('.btn-eliminar') as HTMLButtonElement | null;
+    if (btnEliminar) {
+      btnEliminar.dataset.id = cliente.id;
+      btnEliminar.dataset.nombre = cliente.nombre;
+    }
+
+    return fila;
+  }
+
+  /**
+   * Dado un listado de pagos (de varios clientes, sin ordenar por cliente),
+   * devuelve un Map cliente_id -> último pago. Asume que `pagos` ya viene
+   * ordenado por fecha_pago descendente, así que el primer registro que
+   * aparece para cada cliente_id es el más reciente.
+   */
+  function indexarUltimoPagoPorCliente(pagos: PagoRow[]): Map<string, PagoRow> {
+    const ultimoPago = new Map<string, PagoRow>();
+    for (const pago of pagos) {
+      if (!ultimoPago.has(pago.cliente_id)) {
+        ultimoPago.set(pago.cliente_id, pago);
+      }
+    }
+    return ultimoPago;
+  }
+
+  async function cargarDatos(): Promise<void> {
+    mostrarError(null);
+    if (cargandoEl) cargandoEl.hidden = false;
+    contenidoEl?.classList.add('hidden');
+    mostrarVacio(false);
+
+    const res = await fetch('/api/admin/clientes');
+    const json = await res.json();
+
+    if (cargandoEl) cargandoEl.hidden = true;
+
+    if (!res.ok || json.error) {
+      mostrarError(`No se pudieron cargar los datos: ${json.error ?? 'Error desconocido'}`);
+      return;
+    }
+
+    planesCatalogo = (json.planes ?? []) as PlanOption[];
+    profesoresCatalogo = (json.profesores ?? []) as ProfesorOption[];
+    poblarSelectPlanes(planesCatalogo);
+    poblarSelectProfesores(profesoresCatalogo);
+
+    const mapaPlanes = new Map(planesCatalogo.map((plan) => [plan.id, plan.nombre]));
+    const clientes = (json.clientes ?? []) as ClienteRow[];
+
+    if (clientes.length === 0) {
+      mostrarVacio(true);
+      return;
+    }
+
+    const pagosMap = json.pagosMap ?? {};
+
+    const clientesConPago: ClienteConPago[] = clientes.map((cliente) => {
+      const ultimoPago = pagosMap[cliente.id];
+      return {
+        ...cliente,
+        fecha_pago: ultimoPago?.fecha_pago ?? null,
+        fecha_vencimiento: ultimoPago?.fecha_vencimiento ?? null,
+        monto_pagado: ultimoPago?.monto_pagado ?? null,
+      };
+    });
+
+    mapaPlanesGlobal = mapaPlanes;
+    estadoPagina.items = clientesConPago;
+    estadoPagina.paginaActual = 1;
+    renderizarTablaClientes();
+    contenidoEl?.classList.remove('hidden');
+  }
+
+  function renderizarTablaClientes(): void {
+    const pagina = itemsPagina<ClienteConPago>(estadoPagina.items as ClienteConPago[], estadoPagina.paginaActual);
+    if (tablaClientes) {
+      tablaClientes.replaceChildren(...pagina.map((cliente) => crearFilaCliente(cliente, mapaPlanesGlobal)));
+    }
+    renderizarPaginacion('pag-clientes', estadoPagina, (p) => {
+      estadoPagina.paginaActual = p;
+      renderizarTablaClientes();
+    });
+  }
+
+  btnReintentar?.addEventListener('click', () => void cargarDatos());
+
+  function abrirModal(): void {
+    poblarSelectPlanes(planesCatalogo);
+    poblarSelectProfesores(profesoresCatalogo);
+    modalOverlay?.classList.remove('hidden');
+    modalOverlay?.classList.add('flex');
+    document.getElementById('input-nombre')?.focus();
+  }
+
+  function cerrarModal(): void {
+    modalOverlay?.classList.add('hidden');
+    modalOverlay?.classList.remove('flex');
+    formNuevoCliente?.reset();
+    formError?.classList.add('hidden');
+    poblarSelectPlanes(planesCatalogo);
+  }
+
+  document.getElementById('btn-nuevo-cliente')?.addEventListener('click', abrirModal);
+  document.getElementById('btn-nuevo-cliente-vacio')?.addEventListener('click', abrirModal);
+  document.getElementById('btn-cerrar-modal')?.addEventListener('click', cerrarModal);
+  document.getElementById('btn-cancelar-modal')?.addEventListener('click', cerrarModal);
+
+  selectPlan?.addEventListener('change', () => {
+    const plan = planesCatalogo.find((p) => p.id === selectPlan.value);
+    if (plan && inputMonto) inputMonto.value = String(plan.precio);
+  });
+
+  formNuevoCliente?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (!formNuevoCliente || !btnGuardarCliente) return;
+
+    const datos = new FormData(formNuevoCliente);
+    const nombre = aTextoRequerido(datos.get('nombre'));
+    const dni = aTextoRequerido(datos.get('dni'));
+    const telefono = aTextoRequerido(datos.get('telefono')) || null;
+    const planId = aTextoRequerido(datos.get('plan_id'));
+    const profesorId = aTextoRequerido(datos.get('profesor_id'));
+    const fechaVencimiento = aFechaONull(datos.get('fecha_vencimiento'));
+    const montoPagado = aMontoValido(datos.get('monto_pagado'), 0);
+    const metodoPago = aTextoRequerido(datos.get('metodo_pago')) || 'Efectivo';
+    const gimnasioId = resolverGimnasioId();
+
+    // Validamos TODO antes de hacer cualquier request. Si algo
+    // obligatorio falta o es inválido, ni 'clientes' ni 'pagos' reciben
+    // un insert: así evitamos el caso que rompía 'pagos' (cliente_id o
+    // plan_id vacíos/mal formados llegando al insert).
+    if (nombre === '' || dni === '') {
+      if (formError) {
+        formError.textContent = 'Completá nombre y DNI.';
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!esUUIDValido(planId)) {
+      if (formError) {
+        formError.textContent = 'Seleccioná un plan del catálogo.';
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!esUUIDValido(profesorId)) {
+      if (formError) {
+        formError.textContent = 'Seleccioná un profesor asignado.';
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!esUUIDValido(gimnasioId)) {
+      if (formError) {
+        formError.textContent = 'Configuración inválida: falta el ID del gimnasio.';
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    btnGuardarCliente.disabled = true;
+    btnGuardarCliente.textContent = 'Guardando…';
+
+    const res = await fetch('/api/admin/clientes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre,
+        dni,
+        telefono,
+        plan_id: planId,
+        profesor_id: profesorId,
+        fecha_vencimiento: fechaVencimiento,
+        monto_pagado: montoPagado,
+        metodo_pago: metodoPago,
+      }),
+    });
+    const json = await res.json();
+
+    btnGuardarCliente.disabled = false;
+    btnGuardarCliente.textContent = 'Guardar';
+
+    if (!res.ok || json.error) {
+      if (formError) {
+        formError.textContent = `Error: ${json.error ?? 'Error desconocido'}`;
+        formError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    cerrarModal();
+    await cargarDatos();
+  });
+
+  const modalEditarOverlay = document.getElementById('modal-editar-overlay');
+  const formEditarCliente = document.getElementById('form-editar-cliente') as HTMLFormElement | null;
+  const editarClienteId = document.getElementById('editar-cliente-id') as HTMLInputElement | null;
+  const editarNombre = document.getElementById('editar-nombre') as HTMLInputElement | null;
+  const editarDni = document.getElementById('editar-dni') as HTMLInputElement | null;
+  const editarTelefono = document.getElementById('editar-telefono') as HTMLInputElement | null;
+  const editarPlan = document.getElementById('editar-plan') as HTMLSelectElement | null;
+  const editarProfesor = document.getElementById('editar-profesor') as HTMLSelectElement | null;
+  const editarFechaVencimiento = document.getElementById('editar-fecha-vencimiento') as HTMLInputElement | null;
+  const editarMonto = document.getElementById('editar-monto') as HTMLInputElement | null;
+  const formEditarError = document.getElementById('form-editar-error');
+  const btnGuardarEdicion = document.getElementById('btn-guardar-edicion') as HTMLButtonElement | null;
+  const btnEliminarCliente = document.getElementById('btn-eliminar-cliente') as HTMLButtonElement | null;
+
+  function poblarSelectPlanesEditar(planes: PlanOption[]): void {
+    if (!editarPlan) return;
+    editarPlan.replaceChildren();
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Seleccioná un plan';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    editarPlan.append(placeholder);
+
+    for (const plan of planes) {
+      const opcion = document.createElement('option');
+      opcion.value = plan.id;
+      opcion.textContent = plan.nombre;
+      editarPlan.append(opcion);
+    }
+  }
+
+  function abrirModalEditar(dataset: DOMStringMap): void {
+    if (!modalEditarOverlay || !editarClienteId || !editarNombre || !editarDni || !editarPlan || !editarProfesor) return;
+
+    editarClienteId.value = dataset.id ?? '';
+    editarNombre.value = dataset.nombre ?? '';
+    editarDni.value = dataset.dni ?? '';
+    if (editarTelefono) editarTelefono.value = dataset.telefono ?? '';
+
+    poblarSelectPlanesEditar(planesCatalogo);
+    poblarSelectProfesoresEditar(profesoresCatalogo);
+
+    const planId = dataset.plan ?? '';
+    if (planId) {
+      editarPlan.value = planId;
+    }
+
+    const profesorId = dataset.profesorid ?? '';
+    if (profesorId) {
+      editarProfesor.value = profesorId;
+    }
+
+    if (editarFechaVencimiento) editarFechaVencimiento.value = aFechaInput(dataset.fechavencimiento);
+
+    const montoActual = dataset.monto ?? '';
+    if (editarMonto) {
+      if (montoActual && Number(montoActual) > 0) {
+        editarMonto.value = montoActual;
+      } else {
+        const plan = planesCatalogo.find((p) => p.id === planId);
+        editarMonto.value = plan ? String(plan.precio) : '';
+      }
+    }
+
+    formEditarError?.classList.add('hidden');
+    modalEditarOverlay.classList.remove('hidden');
+    modalEditarOverlay.classList.add('flex');
+    editarNombre.focus();
+  }
+
+  function cerrarModalEditar(): void {
+    modalEditarOverlay?.classList.add('hidden');
+    modalEditarOverlay?.classList.remove('flex');
+    formEditarCliente?.reset();
+    formEditarError?.classList.add('hidden');
+  }
+
+  document.getElementById('btn-cerrar-modal-editar')?.addEventListener('click', cerrarModalEditar);
+  document.getElementById('btn-cancelar-modal-editar')?.addEventListener('click', cerrarModalEditar);
+
+  editarPlan?.addEventListener('change', () => {
+    const plan = planesCatalogo.find((p) => p.id === editarPlan.value);
+    if (plan && editarMonto) editarMonto.value = String(plan.precio);
+  });
+
+  modalEditarOverlay?.addEventListener('click', (evento) => {
+    if (evento.target === modalEditarOverlay) cerrarModalEditar();
+  });
+
+  document.addEventListener('click', (evento) => {
+    const objetivo = evento.target as HTMLElement;
+
+    const btnEditar = objetivo.closest('.btn-editar') as HTMLButtonElement | null;
+    if (btnEditar) {
+      evento.preventDefault();
+      abrirModalEditar(btnEditar.dataset);
+    }
+
+    const btnEliminar = objetivo.closest('.btn-eliminar') as HTMLButtonElement | null;
+    if (btnEliminar) {
+      evento.preventDefault();
+      const { id, nombre } = btnEliminar.dataset;
+      if (!id) return;
+
+      const confirmado = window.confirm(
+        `Estás por eliminar al alumno "${nombre}". Esta acción no se puede deshacer. ¿Confirmás?`
+      );
+      if (!confirmado) return;
+
+      (async () => {
+        const res = await fetch('/api/admin/clientes', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.error) {
+          window.alert(`Error al eliminar: ${json.error ?? 'Error desconocido'}`);
+          return;
+        }
+        await cargarDatos();
+      })();
+    }
+  });
+
+  btnEliminarCliente?.addEventListener('click', async () => {
+    const clienteId = editarClienteId?.value;
+    const clienteNombre = editarNombre?.value;
+    if (!clienteId) return;
+
+    const confirmado = window.confirm(
+      `Estás por eliminar al cliente "${clienteNombre}". Esta acción no se puede deshacer. ¿Confirmás?`
+    );
+    if (!confirmado) return;
+
+    btnEliminarCliente.disabled = true;
+    btnEliminarCliente.textContent = 'Eliminando...';
+
+    const res = await fetch('/api/admin/clientes', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: clienteId }),
+    });
+    const json = await res.json();
+
+    btnEliminarCliente.disabled = false;
+    btnEliminarCliente.textContent = 'Eliminar Cliente';
+
+    if (!res.ok || json.error) {
+      if (formEditarError) {
+        formEditarError.textContent = `Error al eliminar: ${json.error ?? 'Error desconocido'}`;
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    cerrarModalEditar();
+    await cargarDatos();
+  });
+
+  formEditarCliente?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (!formEditarCliente || !btnGuardarEdicion || !editarClienteId) return;
+
+    const datos = new FormData(formEditarCliente);
+    const clienteId = editarClienteId.value;
+    const nombre = aTextoRequerido(datos.get('nombre'));
+    const dni = aTextoRequerido(datos.get('dni'));
+    const telefono = aTextoRequerido(datos.get('telefono')) || null;
+    const planId = aTextoRequerido(datos.get('plan_id'));
+    const profesorId = aTextoRequerido(datos.get('profesor_id'));
+    const fechaVencimiento = aFechaONull(datos.get('fecha_vencimiento'));
+    const montoPagado = aMontoValido(datos.get('monto_pagado'), 0);
+    const metodoPago = aTextoRequerido(datos.get('metodo_pago')) || 'Efectivo';
+    const gimnasioId = resolverGimnasioId();
+
+    // Mismo criterio que en el alta: se valida todo antes de tocar la
+    // red, así 'pagos' nunca recibe un cliente_id/plan_id vacío o
+    // corrupto, ni un monto NaN.
+    if (!esUUIDValido(clienteId)) {
+      if (formEditarError) {
+        formEditarError.textContent = 'No se identificó al cliente a editar.';
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (nombre === '' || dni === '') {
+      if (formEditarError) {
+        formEditarError.textContent = 'Completá nombre y DNI.';
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!esUUIDValido(planId)) {
+      if (formEditarError) {
+        formEditarError.textContent = 'Seleccioná un plan del catálogo.';
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!esUUIDValido(profesorId)) {
+      if (formEditarError) {
+        formEditarError.textContent = 'Seleccioná un profesor asignado.';
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!esUUIDValido(gimnasioId)) {
+      if (formEditarError) {
+        formEditarError.textContent = 'Configuración inválida: falta el ID del gimnasio.';
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    btnGuardarEdicion.disabled = true;
+    btnGuardarEdicion.textContent = 'Guardando...';
+
+    const res = await fetch('/api/admin/clientes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id: clienteId,
+        nombre,
+        dni,
+        telefono,
+        plan_id: planId,
+        profesor_id: profesorId,
+        fecha_vencimiento: fechaVencimiento,
+        monto_pagado: montoPagado,
+        metodo_pago: metodoPago,
+      }),
+    });
+    const json = await res.json();
+
+    btnGuardarEdicion.disabled = false;
+    btnGuardarEdicion.textContent = 'Guardar Cambios';
+
+    if (!res.ok || json.error) {
+      if (formEditarError) {
+        formEditarError.textContent = `Error: ${json.error ?? 'Error desconocido'}`;
+        formEditarError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    cerrarModalEditar();
+    await cargarDatos();
+  });
+
+  void cargarDatos().then(() => {
+    const params = new URLSearchParams(window.location.search);
+    const clienteId = params.get('editar');
+    if (!clienteId) return;
+
+    const btnEditar = document.querySelector(`.btn-editar[data-id="${clienteId}"]`) as HTMLButtonElement | null;
+    if (btnEditar) {
+      btnEditar.click();
+      history.replaceState(null, '', window.location.pathname);
+    }
+  });
+</script>

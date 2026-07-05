@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/*
+  Punto único de entrada de estilos globales.
+  Si más adelante necesitás extender el theme (colores de marca, fuentes, etc.)
+  en Tailwind v4 se hace acá mismo con @theme, por ejemplo:
+
+  @theme {
+    --color-brand: #10b981;
+  }
+*/

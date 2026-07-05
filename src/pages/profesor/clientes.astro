@@ -1,0 +1,354 @@
+---
+import ProfesorLayout from '../../layouts/ProfesorLayout.astro';
+---
+
+<ProfesorLayout title="Mis Alumnos" currentPath="/profesor/clientes">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Mis Alumnos</h1>
+    <p class="mt-1 text-sm text-zinc-500">Alumnos asignados a tu cargo.</p>
+  </div>
+
+  <!-- Métricas -->
+  <div class="grid grid-cols-2 gap-4 sm:max-w-md">
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-medium uppercase tracking-wider text-zinc-500">Alumnos Activos</p>
+      <p id="metrica-activos" class="mt-1 text-2xl font-bold text-emerald-600">0</p>
+    </div>
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-medium uppercase tracking-wider text-zinc-500">Alumnos Vencidos</p>
+      <p id="metrica-vencidos" class="mt-1 text-2xl font-bold text-red-600">0</p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="profesor-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+    <span id="profesor-error-mensaje"></span>
+  </div>
+
+  <p id="profesor-cargando" class="px-1 py-10 text-center text-sm text-zinc-500">Cargando alumnos…</p>
+
+  <div id="profesor-vacio" class="hidden flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-8 py-16 text-center">
+    <p class="text-base font-semibold text-zinc-800">No tenés alumnos asignados</p>
+    <p class="max-w-xs text-sm leading-relaxed text-zinc-500">Cuando un administrador te asigne alumnos, aparecerán acá.</p>
+  </div>
+
+  <!-- Tabla -->
+  <div id="profesor-contenido" class="hidden overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-zinc-200">
+        <thead class="bg-zinc-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Nombre</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">DNI</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Teléfono</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Plan</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Vencimiento</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Estado</th>
+            <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-alumnos" class="divide-y divide-zinc-100"></tbody>
+      </table>
+    </div>
+  </div>
+</ProfesorLayout>
+
+<!-- Modal Cobrar Cuota -->
+<div id="modal-cobrar-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/50 p-4">
+  <div role="dialog" aria-modal="true" class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-zinc-900">Cobrar Cuota</h2>
+      <button id="btn-cerrar-cobrar" type="button" aria-label="Cerrar" class="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </button>
+    </div>
+    <p id="cobrar-cliente-nombre" class="mt-1 text-sm text-zinc-500"></p>
+
+    <form id="form-cobrar" class="mt-5 space-y-4">
+      <input type="hidden" id="cobrar-cliente-id" />
+      <input type="hidden" id="cobrar-plan-id" />
+      <div>
+        <label for="cobrar-monto" class="block text-sm font-medium text-zinc-700">Monto abonado ($)</label>
+        <input id="cobrar-monto" name="monto_pagado" type="number" step="0.01" min="0" required placeholder="0.00"
+          class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+      </div>
+      <div>
+        <label for="cobrar-metodo" class="block text-sm font-medium text-zinc-700">Método de pago</label>
+        <select id="cobrar-metodo" name="metodo_pago"
+          class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+        </select>
+      </div>
+      <p id="cobrar-error" class="hidden text-sm text-red-600"></p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="btn-cancelar-cobrar" class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+        <button type="submit" id="btn-confirmar-cobrar" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60">
+          Confirmar Cobro
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
+
+  const profesorId = localStorage.getItem('profesor_id');
+  if (!profesorId) {
+    window.location.href = '/login';
+  }
+
+  // ── Interfaces ───────────────────────────────────────────────
+  interface PlanRow { id: string; nombre: string; precio: number; }
+  interface ClienteRow { id: string; nombre: string; dni: string; telefono: string | null; plan_id: string | null; }
+  interface PagoRow { cliente_id: string; fecha_pago: string | null; fecha_vencimiento: string | null; monto_pagado: number | null; }
+  interface ClienteConPago extends ClienteRow { fecha_pago: string | null; fecha_vencimiento: string | null; monto_pagado: number | null; }
+
+  // ── Estado ───────────────────────────────────────────────────
+  let mapaPlanes = new Map<string, string>();
+  let alumnosConPago: ClienteConPago[] = [];
+
+  // ── DOM ──────────────────────────────────────────────────────
+  const cargandoEl = document.getElementById('profesor-cargando');
+  const vacioEl = document.getElementById('profesor-vacio');
+  const contenidoEl = document.getElementById('profesor-contenido');
+  const tablaEl = document.getElementById('tabla-alumnos');
+  const errorEl = document.getElementById('profesor-error');
+  const errorMensajeEl = document.getElementById('profesor-error-mensaje');
+  const metricaActivos = document.getElementById('metrica-activos');
+  const metricaVencidos = document.getElementById('metrica-vencidos');
+
+  const modalCobrarOverlay = document.getElementById('modal-cobrar-overlay');
+  const formCobrar = document.getElementById('form-cobrar') as HTMLFormElement | null;
+  const cobrarClienteId = document.getElementById('cobrar-cliente-id') as HTMLInputElement | null;
+  const cobrarClienteNombre = document.getElementById('cobrar-cliente-nombre');
+  const cobrarPlanId = document.getElementById('cobrar-plan-id') as HTMLInputElement | null;
+  const cobrarMonto = document.getElementById('cobrar-monto') as HTMLInputElement | null;
+  const cobrarError = document.getElementById('cobrar-error');
+  const btnConfirmarCobrar = document.getElementById('btn-confirmar-cobrar') as HTMLButtonElement | null;
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function hoyISO(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function sumarMes(fecha: string): string {
+    const [y, m, d] = fecha.split('-').map(Number);
+    const nueva = new Date(y, m, d);
+    return `${nueva.getFullYear()}-${String(nueva.getMonth() + 1).padStart(2, '0')}-${String(nueva.getDate()).padStart(2, '0')}`;
+  }
+
+  function formatFecha(iso: string | null): string {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function calcularEstado(fv: string | null): { texto: string; clases: string } {
+    if (!fv) return { texto: 'Sin Registrar', clases: 'bg-zinc-100 text-zinc-500 ring-zinc-200' };
+    if (fv < hoyISO()) return { texto: 'Vencido', clases: 'bg-red-50 text-red-700 ring-red-200' };
+    return { texto: 'Activo', clases: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
+  }
+
+  function mostrarError(msg: string): void {
+    if (errorMensajeEl) errorMensajeEl.textContent = msg;
+    errorEl?.classList.remove('hidden');
+    errorEl?.classList.add('flex');
+  }
+
+  function abrirCobrar(cliente: ClienteConPago): void {
+    if (!modalCobrarOverlay || !cobrarClienteId || !cobrarClienteNombre || !cobrarPlanId || !cobrarMonto) return;
+    cobrarClienteId.value = cliente.id;
+    cobrarClienteNombre.textContent = `${cliente.nombre} — DNI ${cliente.dni}`;
+    cobrarPlanId.value = cliente.plan_id ?? '';
+    cobrarMonto.value = cliente.monto_pagado != null && cliente.monto_pagado > 0 ? String(cliente.monto_pagado) : '';
+    cobrarError?.classList.add('hidden');
+    modalCobrarOverlay.classList.remove('hidden');
+    modalCobrarOverlay.classList.add('flex');
+  }
+
+  function cerrarCobrar(): void {
+    modalCobrarOverlay?.classList.add('hidden');
+    modalCobrarOverlay?.classList.remove('flex');
+    formCobrar?.reset();
+    cobrarError?.classList.add('hidden');
+  }
+
+  // ── Renderizar tabla ─────────────────────────────────────────
+  function renderizarTabla(): void {
+    if (!tablaEl) return;
+    tablaEl.innerHTML = '';
+
+    let activos = 0;
+    let vencidos = 0;
+
+    for (const c of alumnosConPago) {
+      const estado = calcularEstado(c.fecha_vencimiento);
+      if (estado.texto === 'Activo') activos++;
+      else if (estado.texto === 'Vencido') vencidos++;
+
+      const planNombre = mapaPlanes.get(c.plan_id ?? '') ?? '—';
+
+      const fila = document.createElement('tr');
+      fila.className = 'hover:bg-zinc-50 transition-colors';
+      fila.innerHTML = `
+        <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900">${c.nombre}</td>
+        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${c.dni}</td>
+        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${c.telefono ?? '—'}</td>
+        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${planNombre}</td>
+        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${formatFecha(c.fecha_vencimiento)}</td>
+        <td class="whitespace-nowrap px-6 py-4 text-sm">
+          <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${estado.clases}">${estado.texto}</span>
+        </td>
+        <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
+          <button type="button" data-cobrar class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700" aria-label="Cobrar cuota">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+            Cobrar
+          </button>
+          <a href="/profesor/ver-rutina?cliente_id=${c.id}" class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900" aria-label="Ver rutina">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><path d="M14.4 14.4 9.6 9.6" /><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767-1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l1.767 1.767a2 2 0 1 1 2.828 2.829z" /><path d="m21.5 21.5-1.4-1.4" /><path d="M3.9 3.9 2.5 2.5" /><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767 1.768a2 2 0 1 1 2.829 2.828z" /></svg>
+            Rutina
+          </a>
+          ${c.telefono ? `<a href="https://wa.me/${c.telefono}?text=${encodeURIComponent('Hola ' + c.nombre + ', te recordamos que tu cuota del gimnasio está pendiente de pago. ¡Gracias!')}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700" aria-label="WhatsApp">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </a>` : ''}
+        </td>
+      `;
+      tablaEl.appendChild(fila);
+    }
+
+    if (metricaActivos) metricaActivos.textContent = String(activos);
+    if (metricaVencidos) metricaVencidos.textContent = String(vencidos);
+  }
+
+  // ── Eventos tabla (delegación) ───────────────────────────────
+  tablaEl?.addEventListener('click', (evento) => {
+    const btn = (evento.target as HTMLElement).closest('[data-cobrar]') as HTMLElement | null;
+    if (!btn) return;
+    const fila = btn.closest('tr');
+    if (!fila) return;
+    const idx = Array.from(tablaEl?.querySelectorAll('tr') ?? []).indexOf(fila);
+    if (idx >= 0 && alumnosConPago[idx]) abrirCobrar(alumnosConPago[idx]);
+  });
+
+  // ── Modal cobrar ─────────────────────────────────────────────
+  document.getElementById('btn-cerrar-cobrar')?.addEventListener('click', cerrarCobrar);
+  document.getElementById('btn-cancelar-cobrar')?.addEventListener('click', cerrarCobrar);
+  modalCobrarOverlay?.addEventListener('click', (e) => { if (e.target === modalCobrarOverlay) cerrarCobrar(); });
+
+  formCobrar?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (!formCobrar || !btnConfirmarCobrar || !cobrarClienteId || !cobrarPlanId) return;
+
+    const clienteId = cobrarClienteId.value;
+    const planId = cobrarPlanId.value;
+    const datos = new FormData(formCobrar);
+    const monto = Number(datos.get('monto_pagado')) || 0;
+    const metodo = String(datos.get('metodo_pago') || 'Efectivo');
+
+    if (monto <= 0) {
+      if (cobrarError) { cobrarError.textContent = 'Ingresá un monto válido.'; cobrarError.classList.remove('hidden'); }
+      return;
+    }
+
+    btnConfirmarCobrar.disabled = true;
+    btnConfirmarCobrar.textContent = 'Procesando…';
+
+    const nuevaVencimiento = sumarMes(hoyISO());
+
+    const { error } = await supabase.from('pagos').insert({
+      gimnasio_id: GIMNASIO_ID,
+      cliente_id: clienteId,
+      plan_id: planId || null,
+      fecha_pago: hoyISO(),
+      fecha_vencimiento: nuevaVencimiento,
+      monto_pagado: monto,
+      metodo_pago: metodo,
+    });
+
+    btnConfirmarCobrar.disabled = false;
+    btnConfirmarCobrar.textContent = 'Confirmar Cobro';
+
+    if (error) {
+      if (cobrarError) { cobrarError.textContent = `Error: ${error.message}`; cobrarError.classList.remove('hidden'); }
+      return;
+    }
+
+    cerrarCobrar();
+    void cargarDatos();
+  });
+
+  // ── Cargar datos ─────────────────────────────────────────────
+  async function cargarDatos(): Promise<void> {
+    if (!profesorId) return;
+
+    if (cargandoEl) cargandoEl.hidden = false;
+    contenidoEl?.classList.add('hidden');
+    vacioEl?.classList.add('hidden');
+    errorEl?.classList.add('hidden');
+
+    // 1) Planes
+    const { data: planesData } = await supabase
+      .from('planes').select('id, nombre').eq('gimnasio_id', GIMNASIO_ID).order('nombre');
+
+    mapaPlanes = new Map((planesData ?? []).map((p: PlanRow) => [p.id, p.nombre]));
+
+    // 2) Clientes de este profesor
+    const { data: clientesData, error: errorClientes } = await supabase
+      .from('clientes').select('id, nombre, dni, telefono, plan_id')
+      .eq('gimnasio_id', GIMNASIO_ID).eq('profesor_id', profesorId)
+      .order('nombre');
+
+    if (errorClientes) {
+      if (cargandoEl) cargandoEl.hidden = true;
+      mostrarError(`No se pudieron cargar los alumnos: ${errorClientes.message}`);
+      return;
+    }
+
+    const clientes = (clientesData ?? []) as ClienteRow[];
+
+    if (clientes.length === 0) {
+      if (cargandoEl) cargandoEl.hidden = true;
+      vacioEl?.classList.remove('hidden');
+      vacioEl?.classList.add('flex');
+      return;
+    }
+
+    // 3) Último pago de cada cliente
+    const ids = clientes.map((c) => c.id);
+    const { data: pagosData } = await supabase
+      .from('pagos').select('cliente_id, fecha_pago, fecha_vencimiento, monto_pagado')
+      .eq('gimnasio_id', GIMNASIO_ID).in('cliente_id', ids)
+      .order('fecha_pago', { ascending: false });
+
+    const ultimoPago = new Map<string, PagoRow>();
+    for (const p of (pagosData ?? []) as PagoRow[]) {
+      if (!ultimoPago.has(p.cliente_id)) ultimoPago.set(p.cliente_id, p);
+    }
+
+    alumnosConPago = clientes.map((c) => {
+      const pago = ultimoPago.get(c.id);
+      return {
+        ...c,
+        fecha_pago: pago?.fecha_pago ?? null,
+        fecha_vencimiento: pago?.fecha_vencimiento ?? null,
+        monto_pagado: pago?.monto_pagado ?? null,
+      };
+    });
+
+    if (cargandoEl) cargandoEl.hidden = true;
+    contenidoEl?.classList.remove('hidden');
+    renderizarTabla();
+  }
+
+  void cargarDatos();
+</script>

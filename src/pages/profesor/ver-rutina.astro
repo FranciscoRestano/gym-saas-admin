@@ -1,0 +1,319 @@
+---
+import ProfesorLayout from '../../layouts/ProfesorLayout.astro';
+---
+
+<ProfesorLayout title="Rutina del Alumno" currentPath="/profesor/clientes">
+  <!-- Volver -->
+  <a href="/profesor/clientes" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="m15 18-6-6 6-6" /></svg>
+    Volver a Mis Alumnos
+  </a>
+
+  <!-- Info alumno -->
+  <div id="alumno-info" class="hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <p class="text-sm text-zinc-500">Rutina de</p>
+    <p id="alumno-nombre" class="text-lg font-semibold text-zinc-900"></p>
+  </div>
+
+  <!-- Error -->
+  <div id="rutina-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+    <span id="rutina-error-mensaje"></span>
+  </div>
+
+  <!-- Cargando -->
+  <p id="rutina-cargando" class="px-1 py-10 text-center text-sm text-zinc-500">Cargando rutina…</p>
+
+  <!-- Sin rutina -->
+  <div id="rutina-vacia" class="hidden flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-zinc-200 bg-white px-8 py-16 text-center">
+    <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7">
+        <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z" />
+        <path d="M6 6h12a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z" />
+        <path d="M8 11h8" /><path d="M8 14h8" /><path d="M8 17h5" />
+      </svg>
+    </span>
+    <div class="space-y-1.5">
+      <p class="text-base font-semibold text-zinc-800">Este alumno no tiene rutina asignada</p>
+      <p class="max-w-xs text-sm leading-relaxed text-zinc-500">Creá una rutina desde la página de Rutinas.</p>
+    </div>
+    <a href="/profesor/rutinas" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
+      Crear Rutina
+    </a>
+  </div>
+
+  <!-- Rutina -->
+  <div id="rutina-contenido" class="hidden space-y-4">
+    <!-- Nombre rutina -->
+    <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <h1 id="rutina-nombre" class="text-xl font-bold text-zinc-900"></h1>
+      <p id="rutina-meta" class="mt-1 text-sm text-zinc-500"></p>
+    </div>
+
+    <!-- Tabs de días -->
+    <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div id="tabs-dias" class="flex gap-1 rounded-lg bg-zinc-100 p-1"></div>
+    </div>
+
+    <!-- Ejercicios del día -->
+    <div id="dia-ejercicios" class="space-y-3"></div>
+  </div>
+</ProfesorLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
+
+  const profesorId = localStorage.getItem('profesor_id');
+  if (!profesorId) {
+    window.location.href = '/login';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const clienteId = params.get('cliente_id');
+  if (!clienteId) {
+    window.location.href = '/profesor/clientes';
+  }
+
+  // ── Interfaces ───────────────────────────────────────────────────
+
+  interface RutinaRow {
+    id: string;
+    nombre: string;
+    cliente_id: string;
+    created_at: string;
+  }
+
+  interface EjercicioRutinaRow {
+    id: string;
+    rutina_id: string;
+    ejercicio_id: string;
+    dia: number;
+    bloque_grupo: string;
+    series: number;
+    repeticiones: number;
+    peso: number;
+    descanso: number;
+    aclaraciones: string | null;
+    ejercicios: { id: string; nombre: string; grupo_muscular: string } | null;
+  }
+
+  // ── Estado ───────────────────────────────────────────────────────
+
+  let rutina: RutinaRow | null = null;
+  let ejerciciosRutina: EjercicioRutinaRow[] = [];
+  let diaActivo = 1;
+  let totalDias = 1;
+
+  // ── DOM refs ─────────────────────────────────────────────────────
+
+  const alumnoInfo = document.getElementById('alumno-info');
+  const alumnoNombre = document.getElementById('alumno-nombre');
+  const rutinaError = document.getElementById('rutina-error');
+  const rutinaErrorMensaje = document.getElementById('rutina-error-mensaje');
+  const rutinaCargando = document.getElementById('rutina-cargando');
+  const rutinaVacia = document.getElementById('rutina-vacia');
+  const rutinaContenido = document.getElementById('rutina-contenido');
+  const rutinaNombre = document.getElementById('rutina-nombre');
+  const rutinaMeta = document.getElementById('rutina-meta');
+  const tabsDiasEl = document.getElementById('tabs-dias');
+  const diaEjercicios = document.getElementById('dia-ejercicios');
+
+  // ── Helpers ──────────────────────────────────────────────────────
+
+  function mostrarError(msg: string): void {
+    if (rutinaErrorMensaje) rutinaErrorMensaje.textContent = msg;
+    rutinaError?.classList.remove('hidden');
+    rutinaError?.classList.add('flex');
+  }
+
+  function renderizarTabs(): void {
+    if (!tabsDiasEl) return;
+
+    tabsDiasEl.innerHTML = Array.from({ length: totalDias }, (_, i) => {
+      const d = i + 1;
+      const activo = d === diaActivo;
+      return `<button type="button" data-dia="${d}" class="tab-dia flex-1 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
+        activo ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+      }">Día ${d}</button>`;
+    }).join('');
+  }
+
+  function renderizarEjerciciosDia(): void {
+    if (!diaEjercicios) return;
+
+    const ejerciciosDelDia = ejerciciosRutina.filter((e) => e.dia === diaActivo);
+
+    if (ejerciciosDelDia.length === 0) {
+      diaEjercicios.innerHTML = `
+        <div class="rounded-2xl border border-dashed border-zinc-200 bg-white px-6 py-10 text-center">
+          <p class="text-sm text-zinc-500">No hay ejercicios para este día.</p>
+        </div>`;
+      return;
+    }
+
+    // Agrupar por bloque
+    const bloques = new Map<string, EjercicioRutinaRow[]>();
+    for (const ej of ejerciciosDelDia) {
+      const key = ej.bloque_grupo.charAt(0);
+      if (!bloques.has(key)) bloques.set(key, []);
+      bloques.get(key)!.push(ej);
+    }
+
+    let html = '';
+
+    for (const [bloque, items] of bloques) {
+      const esMulti = items.length > 1;
+
+      for (const item of items) {
+        const ejercicio = item.ejercicios;
+        const nombre = ejercicio?.nombre ?? 'Ejercicio';
+        const grupo = ejercicio?.grupo_muscular ?? '';
+        const badge = esMulti ? item.bloque_grupo : bloque.charAt(0);
+
+        html += `
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-xs font-bold text-emerald-700">${badge}</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-zinc-900">${nombre}</p>
+              <p class="text-xs text-zinc-500">${grupo}</p>
+
+              <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div class="rounded-lg bg-zinc-50 px-2 py-2">
+                  <p class="text-[10px] font-medium uppercase text-zinc-400">Series</p>
+                  <p class="text-sm font-bold text-zinc-900">${item.series}</p>
+                </div>
+                <div class="rounded-lg bg-zinc-50 px-2 py-2">
+                  <p class="text-[10px] font-medium uppercase text-zinc-400">Reps</p>
+                  <p class="text-sm font-bold text-zinc-900">${item.repeticiones}</p>
+                </div>
+                <div class="rounded-lg bg-zinc-50 px-2 py-2">
+                  <p class="text-[10px] font-medium uppercase text-zinc-400">Peso</p>
+                  <p class="text-sm font-bold text-zinc-900">${item.peso > 0 ? item.peso + ' kg' : '—'}</p>
+                </div>
+              </div>
+
+              ${item.descanso > 0 ? `<p class="mt-2 text-xs text-zinc-500">Descanso: ${item.descanso} min</p>` : ''}
+              ${item.aclaraciones ? `<p class="mt-1 text-xs italic text-zinc-500">${item.aclaraciones}</p>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }
+    }
+
+    diaEjercicios.innerHTML = html;
+  }
+
+  function seleccionarDia(dia: number): void {
+    diaActivo = dia;
+
+    document.querySelectorAll('.tab-dia').forEach((tab) => {
+      const d = Number(tab.getAttribute('data-dia'));
+      const activo = d === dia;
+      tab.classList.toggle('bg-white', activo);
+      tab.classList.toggle('text-zinc-900', activo);
+      tab.classList.toggle('shadow-sm', activo);
+      tab.classList.toggle('text-zinc-500', !activo);
+    });
+
+    renderizarEjerciciosDia();
+  }
+
+  // ── Cargar datos ─────────────────────────────────────────────────
+
+  async function cargarDatos(): Promise<void> {
+    if (!clienteId) return;
+
+    if (rutinaCargando) rutinaCargando.hidden = false;
+    rutinaContenido?.classList.add('hidden');
+    rutinaVacia?.classList.add('hidden');
+    rutinaError?.classList.add('hidden');
+
+    // 0) Cargar nombre del alumno
+    const { data: clienteData } = await supabase
+      .from('clientes')
+      .select('nombre')
+      .eq('id', clienteId)
+      .eq('gimnasio_id', GIMNASIO_ID)
+      .maybeSingle();
+
+    if (clienteData && alumnoNombre) {
+      alumnoNombre.textContent = clienteData.nombre;
+      alumnoInfo?.classList.remove('hidden');
+    }
+
+    // 1) Buscar rutina del alumno
+    const { data: rutinasData, error: errorRutina } = await supabase
+      .from('rutinas')
+      .select('id, nombre, cliente_id, created_at')
+      .eq('cliente_id', clienteId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (errorRutina) {
+      if (rutinaCargando) rutinaCargando.hidden = true;
+      mostrarError(`Error al cargar la rutina: ${errorRutina.message}`);
+      return;
+    }
+
+    if (!rutinasData) {
+      if (rutinaCargando) rutinaCargando.hidden = true;
+      rutinaVacia?.classList.remove('hidden');
+      rutinaVacia?.classList.add('flex');
+      return;
+    }
+
+    rutina = rutinasData as RutinaRow;
+
+    // 2) Cargar ejercicios de la rutina
+    const { data: ejerciciosData, error: errorEjercicios } = await supabase
+      .from('rutina_ejercicio')
+      .select('id, rutina_id, ejercicio_id, dia, bloque_grupo, series, repeticiones, peso, descanso, aclaraciones, ejercicios(id, nombre, grupo_muscular)')
+      .eq('rutina_id', rutina.id)
+      .order('dia', { ascending: true })
+      .order('bloque_grupo', { ascending: true });
+
+    if (errorEjercicios) {
+      if (rutinaCargando) rutinaCargando.hidden = true;
+      mostrarError(`Error al cargar los ejercicios: ${errorEjercicios.message}`);
+      return;
+    }
+
+    ejerciciosRutina = (ejerciciosData ?? []) as EjercicioRutinaRow[];
+
+    // Calcular días
+    const dias = new Set(ejerciciosRutina.map((e) => e.dia));
+    totalDias = dias.size > 0 ? Math.max(...dias) : 1;
+
+    // Render
+    if (rutinaNombre) rutinaNombre.textContent = rutina.nombre;
+    if (rutinaMeta) {
+      const fecha = new Date(rutina.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+      rutinaMeta.textContent = `${ejerciciosRutina.length} ejercicios · ${totalDias} día(s) · Creada el ${fecha}`;
+    }
+
+    if (rutinaCargando) rutinaCargando.hidden = true;
+    rutinaContenido?.classList.remove('hidden');
+
+    renderizarTabs();
+    seleccionarDia(1);
+  }
+
+  // ── Eventos ──────────────────────────────────────────────────────
+
+  tabsDiasEl?.addEventListener('click', (evento) => {
+    const tab = (evento.target as HTMLElement).closest('[data-dia]') as HTMLButtonElement | null;
+    if (!tab) return;
+    seleccionarDia(Number(tab.dataset.dia));
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────
+
+  void cargarDatos();
+</script>

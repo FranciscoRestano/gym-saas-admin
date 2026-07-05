@@ -1,0 +1,189 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+
+const iconSettings = `<path d="M10.5 4h3l.5 2.2a7 7 0 0 1 1.9 1.1l2.2-.8 1.5 2.6-1.7 1.5a7 7 0 0 1 0 2.2l1.7 1.5-1.5 2.6-2.2-.8a7 7 0 0 1-1.9 1.1L13.5 20h-3l-.5-2.2a7 7 0 0 1-1.9-1.1l-2.2.8-1.5-2.6 1.7-1.5a7 7 0 0 1 0-2.2L4.4 9.7l1.5-2.6 2.2.8a7 7 0 0 1 1.9-1.1Z" /><circle cx="12" cy="12" r="2.5" />`;
+---
+
+<DashboardLayout title="Configuración">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Configuración</h1>
+      <p class="mt-1 text-sm text-zinc-500">Datos generales del gimnasio.</p>
+    </div>
+
+    <!-- Cargando -->
+    <p id="config-cargando" class="px-1 py-10 text-center text-sm text-zinc-500">Cargando configuración…</p>
+
+    <!-- Error -->
+    <div id="config-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        <path d="M12 9v4M12 17h.01" />
+      </svg>
+      <span id="config-error-mensaje"></span>
+    </div>
+
+    <!-- Formulario -->
+    <div id="config-formulario" class="hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-200">
+      <form id="form-config" class="space-y-5">
+        <div>
+          <label for="cfg-nombre" class="block text-sm font-medium text-zinc-700">Nombre del Gimnasio</label>
+          <input
+            id="cfg-nombre"
+            name="nombre"
+            type="text"
+            required
+            autocomplete="off"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label for="cfg-direccion" class="block text-sm font-medium text-zinc-700">Dirección</label>
+          <input
+            id="cfg-direccion"
+            name="direccion"
+            type="text"
+            autocomplete="off"
+            placeholder="Ej: Av. Principal 1234"
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label for="cfg-telefono" class="block text-sm font-medium text-zinc-700">Teléfono</label>
+            <input
+              id="cfg-telefono"
+              name="telefono"
+              type="text"
+              autocomplete="off"
+              placeholder="Ej: 11 5555 1234"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label for="cfg-email" class="block text-sm font-medium text-zinc-700">Email</label>
+            <input
+              id="cfg-email"
+              name="email"
+              type="email"
+              autocomplete="off"
+              placeholder="Ej: info@gimnasio.com"
+              class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+
+        <p id="config-exito" class="hidden text-sm text-emerald-600">Configuración guardada correctamente.</p>
+        <p id="form-config-error" class="hidden text-sm text-red-600"></p>
+
+        <div class="flex justify-end pt-2">
+          <button
+            type="submit"
+            id="btn-guardar-config"
+            class="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
+
+    const cargandoEl = document.getElementById('config-cargando');
+    const errorEl = document.getElementById('config-error');
+    const errorMensajeEl = document.getElementById('config-error-mensaje');
+    const formularioEl = document.getElementById('config-formulario');
+    const formConfig = document.getElementById('form-config') as HTMLFormElement | null;
+    const btnGuardar = document.getElementById('btn-guardar-config') as HTMLButtonElement | null;
+    const exitoEl = document.getElementById('config-exito');
+    const formErrorEl = document.getElementById('form-config-error');
+
+    const inputNombre = document.getElementById('cfg-nombre') as HTMLInputElement | null;
+    const inputDireccion = document.getElementById('cfg-direccion') as HTMLInputElement | null;
+    const inputTelefono = document.getElementById('cfg-telefono') as HTMLInputElement | null;
+    const inputEmail = document.getElementById('cfg-email') as HTMLInputElement | null;
+
+    function mostrarError(mensaje: string): void {
+      if (errorMensajeEl) errorMensajeEl.textContent = mensaje;
+      errorEl?.classList.remove('hidden');
+      errorEl?.classList.add('flex');
+    }
+
+    async function cargarConfig(): Promise<void> {
+      errorEl?.classList.add('hidden');
+      errorEl?.classList.remove('flex');
+      if (cargandoEl) cargandoEl.hidden = false;
+      formularioEl?.classList.add('hidden');
+
+      const res = await fetch('/api/admin/configuracion');
+      const json = await res.json();
+
+      if (cargandoEl) cargandoEl.hidden = true;
+
+      if (!res.ok || json.error) {
+        mostrarError(`No se pudo cargar la configuración: ${json.error ?? 'Error desconocido'}`);
+        return;
+      }
+
+      if (json.config) {
+        if (inputNombre) inputNombre.value = json.config.nombre ?? '';
+        if (inputDireccion) inputDireccion.value = json.config.direccion ?? '';
+        if (inputTelefono) inputTelefono.value = json.config.telefono ?? '';
+        if (inputEmail) inputEmail.value = json.config.email ?? '';
+      }
+
+      formularioEl?.classList.remove('hidden');
+    }
+
+    formConfig?.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      if (!formConfig || !btnGuardar) return;
+
+      exitoEl?.classList.add('hidden');
+      formErrorEl?.classList.add('hidden');
+
+      const datos = new FormData(formConfig);
+      const nombre = (datos.get('nombre') as string)?.trim();
+      const direccion = (datos.get('direccion') as string)?.trim() || null;
+      const telefono = (datos.get('telefono') as string)?.trim() || null;
+      const email = (datos.get('email') as string)?.trim() || null;
+
+      if (!nombre) {
+        if (formErrorEl) {
+          formErrorEl.textContent = 'El nombre del gimnasio es requerido.';
+          formErrorEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      btnGuardar.disabled = true;
+      btnGuardar.textContent = 'Guardando…';
+
+      const res = await fetch('/api/admin/configuracion', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, direccion, telefono, email }),
+      });
+      const json = await res.json();
+
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Guardar Cambios';
+
+      if (!res.ok || json.error) {
+        if (formErrorEl) {
+          formErrorEl.textContent = `Error: ${json.error ?? 'Error desconocido'}`;
+          formErrorEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      exitoEl?.classList.remove('hidden');
+      setTimeout(() => exitoEl?.classList.add('hidden'), 3000);
+    });
+
+    void cargarConfig();
+  </script>
+</DashboardLayout>

@@ -1,0 +1,24 @@
+---
+export interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+---
+
+<nav id={id} class="flex items-center justify-between border-t border-zinc-200 bg-white px-4 py-3 sm:px-6" aria-label="Paginación">
+  <div class="hidden sm:block">
+    <p id={`${id}-info`} class="text-sm text-zinc-700"></p>
+  </div>
+  <div class="flex flex-1 justify-between gap-2 sm:justify-end">
+    <button type="button" data-page-btn="prev"
+      class="relative inline-flex items-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed">
+      Anterior
+    </button>
+    <div id={`${id}-numbers`} class="flex items-center gap-1"></div>
+    <button type="button" data-page-btn="next"
+      class="relative inline-flex items-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed">
+      Siguiente
+    </button>
+  </div>
+</nav>

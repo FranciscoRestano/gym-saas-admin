@@ -1,0 +1,911 @@
+---
+import ProfesorLayout from '../../layouts/ProfesorLayout.astro';
+
+const iconSearch = `<circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />`;
+const iconCheck = `<path d="M20 6 9 17l-5-5" />`;
+const iconEdit = `<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />`;
+const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />`;
+---
+
+<ProfesorLayout title="Rutinas" currentPath="/profesor/rutinas">
+          <!-- Encabezado -->
+          <div>
+            <h1 id="titulo-pagina" class="text-2xl font-semibold tracking-tight text-zinc-900">Crear Rutina</h1>
+            <p class="mt-1 text-sm text-zinc-500">Armá una rutina por días, con bloques de biseries/triseries.</p>
+          </div>
+
+          <!-- Alertas -->
+          <div id="alerta-exito" class="hidden items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M22 4 12 14.01l-3-3" />
+            </svg>
+            <span id="alerta-exito-mensaje"></span>
+          </div>
+          <div id="alerta-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              <path d="M12 9v4M12 17h.01" />
+            </svg>
+            <span id="alerta-error-mensaje"></span>
+          </div>
+
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <!-- ═══ Columna izquierda: Rutina ═══ -->
+            <div class="space-y-6 lg:col-span-3">
+              <!-- Datos generales -->
+              <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <h2 class="text-sm font-semibold uppercase tracking-widest text-zinc-400">Datos de la rutina</h2>
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div class="sm:col-span-2">
+                    <label for="input-nombre-rutina" class="block text-sm font-medium text-zinc-700">Nombre</label>
+                    <input id="input-nombre-rutina" type="text" required autocomplete="off" placeholder="Ej: Torso-Pierna, Push-Pull-Legs"
+                      class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                  </div>
+                  <div>
+                    <label for="select-dias" class="block text-sm font-medium text-zinc-700">Cantidad de días</label>
+                    <select id="select-dias"
+                      class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                      <option value="1">1 día</option>
+                      <option value="2">2 días</option>
+                      <option value="3" selected>3 días</option>
+                      <option value="4">4 días</option>
+                      <option value="5">5 días</option>
+                      <option value="6">6 días</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="select-cliente" class="block text-sm font-medium text-zinc-700">Asignar a alumno</label>
+                    <select id="select-cliente" required
+                      class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                      <option value="" disabled selected>Cargando alumnos…</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tabs de días -->
+              <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <h2 class="text-sm font-semibold uppercase tracking-widest text-zinc-400">Ejercicios</h2>
+                  <span id="contador-ejercicios" class="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">0</span>
+                </div>
+
+                <div id="tabs-dias" class="mt-4 flex gap-1 rounded-lg bg-zinc-100 p-1"></div>
+
+                <p id="lista-vacia" class="mt-4 py-8 text-center text-sm text-zinc-400">
+                  Agregá ejercicios desde el panel de la derecha.
+                </p>
+
+                <div id="lista-ejercicios" class="mt-4 space-y-2"></div>
+              </div>
+            </div>
+
+            <!-- ═══ Columna derecha: Buscador ═══ -->
+            <div class="space-y-4 lg:col-span-2">
+              <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <h2 class="text-sm font-semibold uppercase tracking-widest text-zinc-400">Agregar ejercicios</h2>
+                <p class="mt-1 text-xs text-zinc-500">Se agregan al <strong id="dia-activo-label">Día 1</strong></p>
+
+                <div class="relative mt-3">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" set:html={iconSearch} />
+                  <input id="input-buscar-ejercicio" type="text" placeholder="Buscar ejercicio…" autocomplete="off"
+                    class="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                </div>
+
+                <div id="filtro-grupos" class="mt-3 flex flex-wrap gap-1.5">
+                  <button type="button" data-grupo="Todos" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-emerald-600 text-white">Todos</button>
+                  <button type="button" data-grupo="Pecho" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Pecho</button>
+                  <button type="button" data-grupo="Espalda" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Espalda</button>
+                  <button type="button" data-grupo="Hombros" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Hombros</button>
+                  <button type="button" data-grupo="Bíceps" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Bíceps</button>
+                  <button type="button" data-grupo="Tríceps" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Tríceps</button>
+                  <button type="button" data-grupo="Cuádriceps" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Cuádriceps</button>
+                  <button type="button" data-grupo="Isquiotibiales" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Isquiotibiales</button>
+                  <button type="button" data-grupo="Gemelos" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Gemelos</button>
+                  <button type="button" data-grupo="Aductores" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Aductores</button>
+                  <button type="button" data-grupo="Core" class="btn-grupo rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200">Core</button>
+                </div>
+
+                <div id="ejercicios-cargando" class="py-6 text-center text-sm text-zinc-400">Cargando ejercicios…</div>
+                <div id="ejercicios-vacio" class="hidden py-6 text-center text-sm text-zinc-400">No se encontraron ejercicios.</div>
+                <div id="lista-disponibles" class="mt-3 max-h-96 space-y-1.5 overflow-y-auto"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Guardar -->
+          <div class="flex items-center justify-between">
+            <button id="btn-cancelar-edicion" type="button" hidden
+              class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
+              Cancelar edición
+            </button>
+            <button id="btn-guardar-rutina" type="button" disabled
+              class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4" set:html={iconCheck} />
+              <span id="btn-guardar-texto">Crear Rutina</span>
+            </button>
+          </div>
+
+          <!-- Rutinas existentes -->
+          <div class="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+              <h2 class="text-sm font-semibold uppercase tracking-widest text-zinc-400">Rutinas existentes</h2>
+              <span id="rutinas-contador" class="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">0</span>
+            </div>
+            <p id="rutinas-cargando" class="px-5 py-8 text-center text-sm text-zinc-400">Cargando rutinas…</p>
+            <p id="rutinas-vacio" class="hidden px-5 py-8 text-center text-sm text-zinc-400">No hay rutinas creadas todavía.</p>
+            <div id="rutinas-lista" class="divide-y divide-zinc-100"></div>
+          </div>
+</ProfesorLayout>
+
+    <script>
+      import { supabase } from '../../lib/supabase';
+
+      const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
+      const BLOQUES = ['A', 'B', 'C', 'D'];
+      const ORDENES = ['Solo', '1', '2', '3'];
+
+      const profesorId = localStorage.getItem('profesor_id');
+      if (!profesorId) {
+        window.location.href = '/login';
+      }
+
+      // ── Interfaces ───────────────────────────────────────────────────
+
+      interface EjercicioRow {
+        id: string;
+        nombre: string;
+        grupo_muscular: string;
+      }
+
+      interface ClienteRow {
+        id: string;
+        nombre: string;
+      }
+
+      interface EjercicioRutina {
+        ejercicio: EjercicioRow;
+        dia: number;
+        bloque: string;
+        orden: string;
+        series: number;
+        repeticiones: number;
+        peso: number;
+        descanso: number;
+        aclaraciones: string;
+      }
+
+      // ── Estado ───────────────────────────────────────────────────────
+
+      let todosLosEjercicios: EjercicioRow[] = [];
+      let grupoActivo = 'Todos';
+      let textoBusqueda = '';
+      let listaRutina: EjercicioRutina[] = [];
+      let diaActivo = 1;
+      let totalDias = 3;
+
+      // ── DOM refs ─────────────────────────────────────────────────────
+
+      const inputNombreRutina = document.getElementById('input-nombre-rutina') as HTMLInputElement | null;
+      const selectDias = document.getElementById('select-dias') as HTMLSelectElement | null;
+      const selectCliente = document.getElementById('select-cliente') as HTMLSelectElement | null;
+      const inputBuscarEjercicio = document.getElementById('input-buscar-ejercicio') as HTMLInputElement | null;
+      const ejerciciosCargando = document.getElementById('ejercicios-cargando');
+      const ejerciciosVacio = document.getElementById('ejercicios-vacio');
+      const listaDisponibles = document.getElementById('lista-disponibles');
+      const listaEjerciciosEl = document.getElementById('lista-ejercicios');
+      const listaVacia = document.getElementById('lista-vacia');
+      const contadorEjercicios = document.getElementById('contador-ejercicios');
+      const diaActivoLabel = document.getElementById('dia-activo-label');
+      const btnGuardar = document.getElementById('btn-guardar-rutina') as HTMLButtonElement | null;
+      const alertaExito = document.getElementById('alerta-exito');
+      const alertaExitoMensaje = document.getElementById('alerta-exito-mensaje');
+      const alertaError = document.getElementById('alerta-error');
+      const alertaErrorMensaje = document.getElementById('alerta-error-mensaje');
+
+      // ── Helpers ──────────────────────────────────────────────────────
+
+      function mostrarExito(mensaje: string): void {
+        if (alertaExitoMensaje) alertaExitoMensaje.textContent = mensaje;
+        alertaExito?.classList.remove('hidden');
+        alertaExito?.classList.add('flex');
+        alertaError?.classList.add('hidden');
+      }
+
+      function mostrarError(mensaje: string): void {
+        if (alertaErrorMensaje) alertaErrorMensaje.textContent = mensaje;
+        alertaError?.classList.remove('hidden');
+        alertaError?.classList.add('flex');
+        alertaExito?.classList.add('hidden');
+      }
+
+      function ocultarAlertas(): void {
+        alertaExito?.classList.add('hidden');
+        alertaExito?.classList.remove('flex');
+        alertaError?.classList.add('hidden');
+        alertaError?.classList.remove('flex');
+      }
+
+      function actualizarBotonGuardar(): void {
+        if (!btnGuardar) return;
+        const nombre = inputNombreRutina?.value.trim() ?? '';
+        const clienteId = selectCliente?.value ?? '';
+        btnGuardar.disabled = !nombre || !clienteId || listaRutina.length === 0;
+      }
+
+      function ejerciciosDelDia(dia: number): EjercicioRutina[] {
+        return listaRutina.filter((e) => e.dia === dia);
+      }
+
+      function siguienteBloqueLibre(dia: number): string {
+        const usados = new Set(ejerciciosDelDia(dia).map((e) => e.bloque));
+        for (const b of BLOQUES) {
+          if (!usados.has(b)) return b;
+        }
+        return BLOQUES[BLOQUES.length - 1];
+      }
+
+      // ── Renderizado: Tabs de días ────────────────────────────────────
+
+      const tabsDiasEl = document.getElementById('tabs-dias');
+
+      function renderizarTabs(): void {
+        if (!tabsDiasEl) return;
+
+        tabsDiasEl.innerHTML = Array.from({ length: totalDias }, (_, i) => {
+          const d = i + 1;
+          const activo = d === diaActivo;
+          return `<button type="button" data-dia="${d}" class="tab-dia flex-1 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
+            activo ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+          }">Día ${d}</button>`;
+        }).join('');
+
+        if (diaActivo > totalDias) {
+          seleccionarDia(1);
+        }
+      }
+
+      // ── Renderizado: Ejercicios disponibles ──────────────────────────
+
+      function renderizarDisponibles(): void {
+        const busqueda = textoBusqueda.toLowerCase();
+        const filtrados = todosLosEjercicios.filter((ej) => {
+          const coincideGrupo = grupoActivo === 'Todos' || ej.grupo_muscular === grupoActivo;
+          const coincideNombre = !busqueda || ej.nombre.toLowerCase().includes(busqueda);
+          return coincideGrupo && coincideNombre;
+        });
+
+        if (ejerciciosCargando) ejerciciosCargando.classList.add('hidden');
+
+        if (filtrados.length === 0) {
+          ejerciciosVacio?.classList.remove('hidden');
+          if (listaDisponibles) listaDisponibles.innerHTML = '';
+          return;
+        }
+
+        ejerciciosVacio?.classList.add('hidden');
+
+        if (listaDisponibles) {
+          listaDisponibles.innerHTML = filtrados.map((ej) => {
+            const enDia = listaRutina.some((r) => r.ejercicio.id === ej.id && r.dia === diaActivo);
+            return `
+              <div class="flex items-center justify-between rounded-lg border border-zinc-100 px-3 py-2.5 transition-colors hover:bg-zinc-50">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-zinc-900">${ej.nombre}</p>
+                  <p class="text-xs text-zinc-500">${ej.grupo_muscular}</p>
+                </div>
+                <button type="button" data-agregar="${ej.id}"
+                  ${enDia ? 'disabled' : ''}
+                  class="ml-3 shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                    enDia ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  }">
+                  ${enDia ? 'Agregado' : '+ Agregar'}
+                </button>
+              </div>`;
+          }).join('');
+        }
+      }
+
+      // ── Renderizado: Lista de ejercicios del día activo ──────────────
+
+      function renderizarListaRutina(): void {
+        const ejercicios = ejerciciosDelDia(diaActivo);
+
+        const totalGeneral = listaRutina.length;
+        if (contadorEjercicios) contadorEjercicios.textContent = String(totalGeneral);
+
+        if (ejercicios.length === 0) {
+          listaVacia?.classList.remove('hidden');
+          if (listaEjerciciosEl) listaEjerciciosEl.innerHTML = '';
+          actualizarBotonGuardar();
+          renderizarDisponibles();
+          return;
+        }
+
+        listaVacia?.classList.add('hidden');
+
+        // Agrupar por bloque para el borde visual
+        const bloques = new Map<string, EjercicioRutina[]>();
+        for (const item of ejercicios) {
+          const key = item.bloque;
+          if (!bloques.has(key)) bloques.set(key, []);
+          bloques.get(key)!.push(item);
+        }
+
+        if (listaEjerciciosEl) {
+          let html = '';
+
+          for (const [bloque, items] of bloques) {
+            const esMulti = items.length > 1;
+            const borderClass = esMulti ? 'border-l-4 border-emerald-500 pl-3' : '';
+
+            html += `<div class="space-y-2 ${borderClass}">`;
+
+            for (const item of items) {
+              const idx = listaRutina.indexOf(item);
+              const bloqueGrupo = esMulti ? `${item.bloque}${item.orden}` : item.bloque;
+
+              html += `
+              <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4" data-idx="${idx}">
+                <div class="flex items-start gap-2">
+                  <!-- Badge bloque -->
+                  <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-[11px] font-bold text-emerald-700">${esMulti ? bloqueGrupo : bloqueGrupo.charAt(0)}</span>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-zinc-900">${item.ejercicio.nombre}</p>
+                        <p class="text-xs text-zinc-500">${item.ejercicio.grupo_muscular}</p>
+                      </div>
+                      <button type="button" data-quitar="${idx}"
+                        class="shrink-0 inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        aria-label="Quitar ejercicio">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                          <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <!-- Fila 1: Bloque + Orden + Campos numéricos -->
+                    <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-6">
+                      <div>
+                        <label class="block text-[11px] font-medium text-zinc-500">Bloque</label>
+                        <select data-campo="bloque" data-idx="${idx}"
+                          class="campo-carga mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-medium text-zinc-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                          ${BLOQUES.map((b) => `<option value="${b}" ${item.bloque === b ? 'selected' : ''}>${b}</option>`).join('')}
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-[11px] font-medium text-zinc-500">Orden</label>
+                        <select data-campo="orden" data-idx="${idx}"
+                          class="campo-carga mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-medium text-zinc-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                          ${ORDENES.map((o) => `<option value="${o}" ${item.orden === o ? 'selected' : ''}>${o}</option>`).join('')}
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-[11px] font-medium text-zinc-500">Series</label>
+                        <input type="number" min="1" value="${item.series}" data-campo="series" data-idx="${idx}"
+                          class="campo-carga mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-center text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                      </div>
+                      <div>
+                        <label class="block text-[11px] font-medium text-zinc-500">Reps</label>
+                        <input type="number" min="1" value="${item.repeticiones}" data-campo="repeticiones" data-idx="${idx}"
+                          class="campo-carga mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-center text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                      </div>
+                      <div>
+                        <label class="block text-[11px] font-medium text-zinc-500">Peso (kg)</label>
+                        <input type="number" min="0" step="0.5" value="${item.peso}" data-campo="peso" data-idx="${idx}"
+                          class="campo-carga mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-center text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                      </div>
+                      <div>
+                        <label class="block text-[11px] font-medium text-zinc-500">Desc. (min)</label>
+                        <input type="number" min="0" step="0.5" value="${item.descanso}" data-campo="descanso" data-idx="${idx}"
+                          class="campo-carga mt-1 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-center text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                      </div>
+                    </div>
+
+                    <!-- Fila 2: Aclaraciones -->
+                    <div class="mt-2">
+                      <input type="text" value="${item.aclaraciones}" data-campo="aclaraciones" data-idx="${idx}"
+                        placeholder="Ej: Al fallo / Mantener 2s abajo"
+                        class="campo-texto mt-1 w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-600 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                    </div>
+                  </div>
+                </div>
+              </div>`;
+            }
+
+            html += `</div>`;
+          }
+
+          listaEjerciciosEl.innerHTML = html;
+        }
+
+        actualizarBotonGuardar();
+        renderizarDisponibles();
+      }
+
+      // ── Tabs de días ─────────────────────────────────────────────────
+
+      function seleccionarDia(dia: number): void {
+        diaActivo = dia;
+        if (diaActivoLabel) diaActivoLabel.textContent = `Día ${dia}`;
+
+        document.querySelectorAll('.tab-dia').forEach((tab) => {
+          const d = Number(tab.getAttribute('data-dia'));
+          const activo = d === dia;
+          tab.classList.toggle('bg-white', activo);
+          tab.classList.toggle('text-zinc-900', activo);
+          tab.classList.toggle('shadow-sm', activo);
+          tab.classList.toggle('text-zinc-500', !activo);
+        });
+
+        renderizarListaRutina();
+      }
+
+      // ── Carga de datos ───────────────────────────────────────────────
+
+      async function cargarEjercicios(): Promise<void> {
+        const { data, error } = await supabase
+          .from('ejercicios')
+          .select('id, nombre, grupo_muscular')
+          .order('grupo_muscular', { ascending: true })
+          .order('nombre', { ascending: true });
+
+        if (error) {
+          mostrarError(`No se pudieron cargar los ejercicios: ${error.message}`);
+          return;
+        }
+
+        todosLosEjercicios = (data ?? []) as EjercicioRow[];
+        renderizarDisponibles();
+      }
+
+      async function cargarClientes(): Promise<void> {
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('id, nombre')
+          .eq('gimnasio_id', GIMNASIO_ID)
+          .eq('profesor_id', profesorId)
+          .order('nombre', { ascending: true });
+
+        if (error) {
+          mostrarError(`No se pudieron cargar los alumnos: ${error.message}`);
+          return;
+        }
+
+        const clientes = (data ?? []) as ClienteRow[];
+
+        if (selectCliente) {
+          selectCliente.replaceChildren();
+          const placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = 'Seleccioná un alumno';
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          selectCliente.append(placeholder);
+
+          for (const cliente of clientes) {
+            const opcion = document.createElement('option');
+            opcion.value = cliente.id;
+            opcion.textContent = cliente.nombre;
+            selectCliente.append(opcion);
+          }
+
+          selectCliente.disabled = false;
+        }
+      }
+
+      // ── Rutinas existentes ──────────────────────────────────────────
+
+      interface RutinaRow {
+        id: string;
+        nombre: string;
+        cliente_id: string | null;
+        cliente_nombre?: string;
+        total_ejercicios: number;
+        total_dias: number;
+        created_at: string;
+      }
+
+      const rutinasCargando = document.getElementById('rutinas-cargando');
+      const rutinasVacio = document.getElementById('rutinas-vacio');
+      const rutinasLista = document.getElementById('rutinas-lista');
+      const rutinasContador = document.getElementById('rutinas-contador');
+      const tituloPagina = document.getElementById('titulo-pagina');
+      const btnGuardarTexto = document.getElementById('btn-guardar-texto');
+      const btnCancelarEdicion = document.getElementById('btn-cancelar-edicion') as HTMLButtonElement | null;
+
+      let rutinaEditandoId: string | null = null;
+
+      async function cargarRutinas(): Promise<void> {
+        if (rutinasCargando) rutinasCargando.hidden = false;
+        rutinasVacio?.classList.add('hidden');
+        if (rutinasLista) rutinasLista.innerHTML = '';
+
+        const { data: rutinas, error } = await supabase
+          .from('rutinas')
+          .select('id, nombre, cliente_id, created_at')
+          .eq('gimnasio_id', GIMNASIO_ID)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          if (rutinasCargando) rutinasCargando.hidden = true;
+          mostrarError(`No se pudieron cargar las rutinas: ${error.message}`);
+          return;
+        }
+
+        const { data: clientes } = await supabase
+          .from('clientes')
+          .select('id, nombre')
+          .eq('gimnasio_id', GIMNASIO_ID);
+
+        const mapaClientes = new Map<string, string>();
+        (clientes ?? []).forEach((c) => mapaClientes.set(c.id, c.nombre));
+
+        const { data: ejerciciosRutina } = await supabase
+          .from('rutina_ejercicio')
+          .select('rutina_id, dia');
+
+        const statsRutinas = new Map<string, { total: number; dias: Set<number> }>();
+        (ejerciciosRutina ?? []).forEach((er) => {
+          const existing = statsRutinas.get(er.rutina_id) ?? { total: 0, dias: new Set() };
+          existing.total++;
+          existing.dias.add(er.dia);
+          statsRutinas.set(er.rutina_id, existing);
+        });
+
+        if (rutinasCargando) rutinasCargando.hidden = true;
+
+        const rutinasData = (rutinas ?? []) as RutinaRow[];
+
+        if (rutinasData.length === 0) {
+          rutinasVacio?.classList.remove('hidden');
+          if (rutinasContador) rutinasContador.textContent = '0';
+          return;
+        }
+
+        if (rutinasContador) rutinasContador.textContent = String(rutinasData.length);
+
+        if (rutinasLista) {
+          rutinasLista.innerHTML = rutinasData.map((r) => {
+            const stats = statsRutinas.get(r.id);
+            const totalEj = stats?.total ?? 0;
+            const totalDias = stats?.dias.size ?? 0;
+            const clienteNombre = r.cliente_id ? (mapaClientes.get(r.cliente_id) ?? '—') : '—';
+            const fecha = new Date(r.created_at).toLocaleDateString('es-AR');
+
+            return `
+          <div class="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-zinc-900">${r.nombre}</p>
+              <p class="text-xs text-zinc-500">${clienteNombre} · ${totalEj} ejercicio${totalEj !== 1 ? 's' : ''} · ${totalDias} día${totalDias !== 1 ? 's' : ''} · ${fecha}</p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" data-editar-rutina="${r.id}"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                aria-label="Editar rutina">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" set:html=${iconEdit} />
+              </button>
+              <button type="button" data-eliminar-rutina="${r.id}" data-nombre-rutina="${r.nombre}"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                aria-label="Eliminar rutina">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" set:html=${iconTrash} />
+              </button>
+            </div>
+          </div>`;
+          }).join('');
+        }
+      }
+
+      async function editarRutina(rutinaId: string): Promise<void> {
+        const { data: rutina, error: errRutina } = await supabase
+          .from('rutinas')
+          .select('id, nombre, cliente_id')
+          .eq('id', rutinaId)
+          .single();
+
+        if (errRutina || !rutina) {
+          mostrarError('No se pudo cargar la rutina para editar.');
+          return;
+        }
+
+        const { data: ejerciciosData, error: errEjercicios } = await supabase
+          .from('rutina_ejercicio')
+          .select('ejercicio_id, dia, bloque_grupo, series, repeticiones, peso, descanso, aclaraciones')
+          .eq('rutina_id', rutinaId)
+          .order('dia', { ascending: true });
+
+        if (errEjercicios) {
+          mostrarError('No se pudieron cargar los ejercicios de la rutina.');
+          return;
+        }
+
+        if (inputNombreRutina) inputNombreRutina.value = rutina.nombre;
+        if (selectCliente) selectCliente.value = rutina.cliente_id ?? '';
+
+        const dias = new Set((ejerciciosData ?? []).map((e) => e.dia));
+        totalDias = Math.max(dias.size, 1);
+        if (selectDias) selectDias.value = String(totalDias);
+        renderizarTabs();
+
+        listaRutina = [];
+        for (const ej of (ejerciciosData ?? [])) {
+          const ejercicio = todosLosEjercicios.find((e) => e.id === ej.ejercicio_id);
+          if (!ejercicio) continue;
+
+          const bg = ej.bloque_grupo ?? '';
+          let bloque = 'A';
+          let orden = 'Solo';
+
+          if (bg.length === 1) {
+            bloque = bg;
+          } else if (bg.length === 2) {
+            bloque = bg.charAt(0);
+            orden = bg.charAt(1);
+          }
+
+          listaRutina.push({
+            ejercicio,
+            dia: ej.dia,
+            bloque,
+            orden,
+            series: ej.series ?? 3,
+            repeticiones: ej.repeticiones ?? 10,
+            peso: ej.peso ?? 0,
+            descanso: ej.descanso ?? 1,
+            aclaraciones: ej.aclaraciones ?? '',
+          });
+        }
+
+        rutinaEditandoId = rutinaId;
+        if (tituloPagina) tituloPagina.textContent = 'Editar Rutina';
+        if (btnGuardarTexto) btnGuardarTexto.textContent = 'Guardar Cambios';
+        btnCancelarEdicion?.removeAttribute('hidden');
+
+        seleccionarDia(1);
+        actualizarBotonGuardar();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      btnCancelarEdicion?.addEventListener('click', () => {
+        rutinaEditandoId = null;
+        if (tituloPagina) tituloPagina.textContent = 'Crear Rutina';
+        if (btnGuardarTexto) btnGuardarTexto.textContent = 'Crear Rutina';
+        btnCancelarEdicion?.setAttribute('hidden', '');
+        listaRutina = [];
+        if (inputNombreRutina) inputNombreRutina.value = '';
+        if (selectCliente) selectCliente.selectedIndex = 0;
+        seleccionarDia(1);
+        ocultarAlertas();
+      });
+
+      async function eliminarRutina(rutinaId: string, nombreRutina: string): Promise<void> {
+        const confirmado = window.confirm(`¿Eliminar la rutina "${nombreRutina}"? Esta acción no se puede deshacer.`);
+        if (!confirmado) return;
+
+        await supabase.from('rutina_ejercicio').delete().eq('rutina_id', rutinaId);
+        const { error } = await supabase.from('rutinas').delete().eq('id', rutinaId);
+
+        if (error) {
+          mostrarError(`No se pudo eliminar la rutina: ${error.message}`);
+          return;
+        }
+
+        mostrarExito(`Rutina "${nombreRutina}" eliminada.`);
+        void cargarRutinas();
+      }
+
+      rutinasLista?.addEventListener('click', (evento) => {
+        const btnEditar = (evento.target as HTMLElement).closest('[data-editar-rutina]') as HTMLElement | null;
+        if (btnEditar) {
+          void editarRutina(btnEditar.dataset.editarRutina!);
+          return;
+        }
+
+        const btnEliminar = (evento.target as HTMLElement).closest('[data-eliminar-rutina]') as HTMLElement | null;
+        if (btnEliminar) {
+          void eliminarRutina(btnEliminar.dataset.eliminarRutina!, btnEliminar.dataset.nombreRutina!);
+        }
+      });
+
+      // ── Eventos ──────────────────────────────────────────────────────
+
+      inputNombreRutina?.addEventListener('input', actualizarBotonGuardar);
+      selectCliente?.addEventListener('change', actualizarBotonGuardar);
+
+      selectDias?.addEventListener('change', () => {
+        totalDias = Number(selectDias.value) || 3;
+        renderizarTabs();
+      });
+
+      // Tabs de días
+      document.getElementById('tabs-dias')?.addEventListener('click', (evento) => {
+        const tab = (evento.target as HTMLElement).closest('[data-dia]') as HTMLButtonElement | null;
+        if (!tab) return;
+        seleccionarDia(Number(tab.dataset.dia));
+      });
+
+      // Buscador
+      inputBuscarEjercicio?.addEventListener('input', () => {
+        textoBusqueda = inputBuscarEjercicio.value;
+        renderizarDisponibles();
+      });
+
+      // Filtro grupo
+      document.getElementById('filtro-grupos')?.addEventListener('click', (evento) => {
+        const btn = (evento.target as HTMLElement).closest('[data-grupo]') as HTMLButtonElement | null;
+        if (!btn) return;
+
+        grupoActivo = btn.dataset.grupo ?? 'Todos';
+
+        document.querySelectorAll('.btn-grupo').forEach((b) => {
+          const activo = b.getAttribute('data-grupo') === grupoActivo;
+          b.classList.toggle('bg-emerald-600', activo);
+          b.classList.toggle('text-white', activo);
+          b.classList.toggle('bg-zinc-100', !activo);
+          b.classList.toggle('text-zinc-600', !activo);
+        });
+
+        renderizarDisponibles();
+      });
+
+      // Agregar ejercicio
+      listaDisponibles?.addEventListener('click', (evento) => {
+        const btn = (evento.target as HTMLElement).closest('[data-agregar]') as HTMLButtonElement | null;
+        if (!btn || btn.disabled) return;
+
+        const ejercicioId = btn.dataset.agregar;
+        const ejercicio = todosLosEjercicios.find((e) => e.id === ejercicioId);
+        if (!ejercicio) return;
+
+        const bloque = siguienteBloqueLibre(diaActivo);
+
+        listaRutina.push({
+          ejercicio,
+          dia: diaActivo,
+          bloque,
+          orden: 'Solo',
+          series: 3,
+          repeticiones: 10,
+          peso: 0,
+          descanso: 1,
+          aclaraciones: '',
+        });
+
+        renderizarListaRutina();
+      });
+
+      // Quitar ejercicio
+      listaEjerciciosEl?.addEventListener('click', (evento) => {
+        const btn = (evento.target as HTMLElement).closest('[data-quitar]') as HTMLButtonElement | null;
+        if (!btn) return;
+
+        const idx = Number(btn.dataset.quitar);
+        if (Number.isNaN(idx)) return;
+
+        listaRutina.splice(idx, 1);
+        renderizarListaRutina();
+      });
+
+      // Actualizar campos (numéricos, selects y texto)
+      listaEjerciciosEl?.addEventListener('input', (evento) => {
+        const input = evento.target as HTMLInputElement | HTMLSelectElement;
+        const idx = Number(input.dataset.idx);
+        const campo = input.dataset.campo;
+        if (Number.isNaN(idx) || !campo) return;
+
+        const item = listaRutina[idx];
+        if (!item) return;
+
+        if (campo === 'aclaraciones') {
+          (item as unknown as Record<string, string>)[campo] = input.value;
+        } else if (campo === 'bloque' || campo === 'orden') {
+          (item as unknown as Record<string, string>)[campo] = input.value;
+          renderizarListaRutina();
+        } else {
+          const valor = Number(input.value);
+          if (!Number.isFinite(valor) || valor < 0) return;
+          (item as unknown as Record<string, number>)[campo] = valor;
+        }
+      });
+
+      // ── Guardar rutina ───────────────────────────────────────────────
+
+      btnGuardar?.addEventListener('click', async () => {
+        ocultarAlertas();
+
+        const nombre = inputNombreRutina?.value.trim() ?? '';
+        const clienteId = selectCliente?.value ?? '';
+
+        if (!nombre) { mostrarError('Ingresá un nombre para la rutina.'); return; }
+        if (!clienteId) { mostrarError('Seleccioná un alumno.'); return; }
+        if (listaRutina.length === 0) { mostrarError('Agregá al menos un ejercicio.'); return; }
+
+        btnGuardar.disabled = true;
+        btnGuardar.textContent = 'Guardando…';
+
+        let rutinaId: string;
+
+        if (rutinaEditandoId) {
+          const { error: errorUpdate } = await supabase
+            .from('rutinas')
+            .update({ nombre, cliente_id: clienteId })
+            .eq('id', rutinaEditandoId);
+
+          if (errorUpdate) {
+            mostrarError(`No se pudo actualizar la rutina: ${errorUpdate.message}`);
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = 'Guardar Cambios';
+            return;
+          }
+
+          rutinaId = rutinaEditandoId;
+          await supabase.from('rutina_ejercicio').delete().eq('rutina_id', rutinaId);
+        } else {
+          const { data: rutinaCreada, error: errorRutina } = await supabase
+            .from('rutinas')
+            .insert([{ nombre, cliente_id: clienteId, gimnasio_id: GIMNASIO_ID }])
+            .select('id')
+            .single();
+
+          if (errorRutina || !rutinaCreada) {
+            mostrarError(`No se pudo crear la rutina: ${errorRutina?.message ?? 'error desconocido'}`);
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = 'Crear Rutina';
+            return;
+          }
+
+          rutinaId = rutinaCreada.id;
+        }
+
+        const ejerciciosInsert = listaRutina.map((item) => {
+          const ejercicioEnDia = ejerciciosDelDia(item.dia).filter((e) => e.bloque === item.bloque);
+          const esMulti = ejercicioEnDia.length > 1;
+          const bloqueGrupo = esMulti ? `${item.bloque}${item.orden}` : item.bloque;
+
+          return {
+            rutina_id: rutinaId,
+            ejercicio_id: item.ejercicio.id,
+            dia: item.dia,
+            bloque_grupo: bloqueGrupo,
+            series: item.series,
+            repeticiones: item.repeticiones,
+            peso: item.peso,
+            descanso: item.descanso,
+            aclaraciones: item.aclaraciones || null,
+          };
+        });
+
+        const { error: errorEjercicios } = await supabase
+          .from('rutina_ejercicio')
+          .insert(ejerciciosInsert);
+
+        const esEdicion = !!rutinaEditandoId;
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = esEdicion ? 'Guardar Cambios' : 'Crear Rutina';
+
+        if (errorEjercicios) {
+          mostrarError(`La rutina se ${esEdicion ? 'actualizó' : 'creó'}, pero no se pudieron guardar los ejercicios: ${errorEjercicios.message}`);
+          return;
+        }
+
+        mostrarExito(`Rutina "${nombre}" ${esEdicion ? 'actualizada' : 'creada'} con ${listaRutina.length} ejercicios.`);
+
+        rutinaEditandoId = null;
+        if (tituloPagina) tituloPagina.textContent = 'Crear Rutina';
+        if (btnGuardarTexto) btnGuardarTexto.textContent = 'Crear Rutina';
+        btnCancelarEdicion?.setAttribute('hidden', '');
+        listaRutina = [];
+        if (inputNombreRutina) inputNombreRutina.value = '';
+        if (selectCliente) selectCliente.selectedIndex = 0;
+        seleccionarDia(1);
+        void cargarRutinas();
+      });
+
+      // ── Init ─────────────────────────────────────────────────────────
+
+      renderizarTabs();
+      seleccionarDia(1);
+      void Promise.all([cargarEjercicios(), cargarClientes(), cargarRutinas()]);
+    </script>
