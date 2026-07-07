@@ -34,6 +34,18 @@ const brandMark = `<path d="M4 9v6" /><path d="M20 9v6" /><path d="M7 6v12" /><p
         <p id="alumno-nombre" class="text-lg font-semibold text-zinc-900"></p>
       </div>
 
+      <!-- Días restantes -->
+      <div id="dias-restantes" class="hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-zinc-500">Tu membresía</p>
+            <p id="dias-texto" class="mt-0.5 text-2xl font-bold text-zinc-900"></p>
+            <p id="vencimiento-texto" class="mt-0.5 text-sm text-zinc-500"></p>
+          </div>
+          <span id="dias-badge" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold"></span>
+        </div>
+      </div>
+
       <!-- Error -->
       <div id="rutina-error" class="hidden items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-5 w-5 shrink-0">
@@ -76,6 +88,28 @@ const brandMark = `<path d="M4 9v6" /><path d="M20 9v6" /><path d="M7 6v12" /><p
 
         <!-- Ejercicios del día -->
         <div id="dia-ejercicios" class="space-y-3"></div>
+      </div>
+
+      <!-- Historial de Pagos -->
+      <div id="historial-pagos" class="hidden space-y-3">
+        <h2 class="text-lg font-semibold text-zinc-900">Historial de Pagos</h2>
+        <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-zinc-200">
+              <thead class="bg-zinc-50">
+                <tr>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Fecha</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Plan</th>
+                  <th scope="col" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Monto</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Método</th>
+                  <th scope="col" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Vencimiento</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-pagos" class="divide-y divide-zinc-100"></tbody>
+            </table>
+          </div>
+          <p id="pagos-vacio" class="px-4 py-8 text-center text-sm text-zinc-500">No tenés pagos registrados.</p>
+        </div>
       </div>
     </main>
 
@@ -130,6 +164,13 @@ const brandMark = `<path d="M4 9v6" /><path d="M20 9v6" /><path d="M7 6v12" /><p
       const rutinaMeta = document.getElementById('rutina-meta');
       const tabsDiasEl = document.getElementById('tabs-dias');
       const diaEjercicios = document.getElementById('dia-ejercicios');
+      const diasRestantesEl = document.getElementById('dias-restantes');
+      const diasTexto = document.getElementById('dias-texto');
+      const vencimientoTexto = document.getElementById('vencimiento-texto');
+      const diasBadge = document.getElementById('dias-badge');
+      const historialPagos = document.getElementById('historial-pagos');
+      const tablaPagos = document.getElementById('tabla-pagos');
+      const pagosVacio = document.getElementById('pagos-vacio');
 
       // ── Cerrar sesión ────────────────────────────────────────────────
       document.getElementById('btn-cerrar-sesion')?.addEventListener('click', () => {
@@ -140,10 +181,80 @@ const brandMark = `<path d="M4 9v6" /><path d="M20 9v6" /><path d="M7 6v12" /><p
 
       // ── Helpers ──────────────────────────────────────────────────────
 
+      function formatFecha(iso: string | null): string {
+        if (!iso) return '—';
+        const [year, month, day] = iso.split('-');
+        if (!year || !month || !day) return iso;
+        return `${day}/${month}/${year}`;
+      }
+
       function mostrarError(msg: string): void {
         if (rutinaErrorMensaje) rutinaErrorMensaje.textContent = msg;
         rutinaError?.classList.remove('hidden');
         rutinaError?.classList.add('flex');
+      }
+
+      function renderizarMembresia(dias: number | null, vencimiento: string | null): void {
+        if (!diasRestantesEl || !diasTexto || !diasBadge || !vencimientoTexto) return;
+
+        if (dias === null || vencimiento === null) {
+          diasRestantesEl.classList.add('hidden');
+          return;
+        }
+
+        diasRestantesEl.classList.remove('hidden');
+        vencimientoTexto.textContent = `Vence el ${formatFecha(vencimiento)}`;
+
+        if (dias < 0) {
+          diasTexto.textContent = 'Membresía vencida';
+          diasTexto.className = 'mt-0.5 text-2xl font-bold text-red-600';
+          diasBadge.textContent = 'Vencido';
+          diasBadge.className = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-red-50 text-red-700';
+        } else if (dias === 0) {
+          diasTexto.textContent = 'Vence hoy';
+          diasTexto.className = 'mt-0.5 text-2xl font-bold text-amber-600';
+          diasBadge.textContent = 'Hoy';
+          diasBadge.className = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-amber-50 text-amber-700';
+        } else if (dias <= 7) {
+          diasTexto.textContent = `Te quedan ${dias} día${dias === 1 ? '' : 's'}`;
+          diasTexto.className = 'mt-0.5 text-2xl font-bold text-amber-600';
+          diasBadge.textContent = `${dias} día${dias === 1 ? '' : 's'}`;
+          diasBadge.className = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-amber-50 text-amber-700';
+        } else {
+          diasTexto.textContent = `Te quedan ${dias} días`;
+          diasTexto.className = 'mt-0.5 text-2xl font-bold text-emerald-600';
+          diasBadge.textContent = `${dias} días`;
+          diasBadge.className = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-emerald-50 text-emerald-700';
+        }
+      }
+
+      function formatMonto(monto: number | null): string {
+        if (monto === null || monto === undefined) return '—';
+        return `$${monto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      function renderizarPagos(pagos: Array<{ id: string; fecha_pago: string | null; fecha_vencimiento: string | null; monto_pagado: number | null; metodo_pago: string | null; plan_nombre: string }>): void {
+        if (!historialPagos || !tablaPagos || !pagosVacio) return;
+
+        if (pagos.length === 0) {
+          historialPagos.classList.remove('hidden');
+          tablaPagos.innerHTML = '';
+          pagosVacio.classList.remove('hidden');
+          return;
+        }
+
+        historialPagos.classList.remove('hidden');
+        pagosVacio.classList.add('hidden');
+
+        tablaPagos.innerHTML = pagos.map((p) => `
+          <tr class="hover:bg-zinc-50 transition-colors">
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-zinc-900">${formatFecha(p.fecha_pago)}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-zinc-600">${p.plan_nombre}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-700">${formatMonto(p.monto_pagado)}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-zinc-600">${p.metodo_pago ?? '—'}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-zinc-600">${formatFecha(p.fecha_vencimiento)}</td>
+          </tr>
+        `).join('');
       }
 
       function renderizarTabs(): void {
@@ -248,6 +359,20 @@ const brandMark = `<path d="M4 9v6" /><path d="M20 9v6" /><path d="M7 6v12" /><p
         rutinaContenido?.classList.add('hidden');
         rutinaVacia?.classList.add('hidden');
         rutinaError?.classList.add('hidden');
+
+        // 0) Cargar datos del alumno (nombre, membresía, pagos)
+        try {
+          const res = await fetch('/api/alumno/mis-datos');
+          if (res.ok) {
+            const data = await res.json();
+            if (alumnoNombre) alumnoNombre.textContent = data.nombre;
+            alumnoInfo?.classList.remove('hidden');
+            renderizarMembresia(data.diasRestantes, data.vencimiento);
+            renderizarPagos(data.pagos);
+          }
+        } catch {
+          // Si falla, no bloqueamos la rutina
+        }
 
         // 1) Buscar rutina del alumno
         const { data: rutinasData, error: errorRutina } = await supabase

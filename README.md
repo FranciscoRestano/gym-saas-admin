@@ -31,8 +31,8 @@ Sistema de administración SaaS para gimnasios con 3 roles: **Admin**, **Profeso
 Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
-PUBLIC_SUPABASE_URL=tu_url_de_supabase
-PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
+PUBLIC_SUPABASE_URL=https://xqzquobypwoqbdqxzfhx.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=sb_publishable_uMLZGqwSSQnsSeS5h7yHbA_20mcslhu
 ```
 
 ## Comandos
