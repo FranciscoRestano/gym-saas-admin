@@ -53,13 +53,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
                       <option value="6">6 días</option>
                     </select>
                   </div>
-                  <div>
-                    <label for="select-cliente" class="block text-sm font-medium text-zinc-700">Asignar a alumno</label>
-                    <select id="select-cliente" required
-                      class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                      <option value="" disabled selected>Cargando alumnos…</option>
-                    </select>
-                  </div>
                 </div>
               </div>
 
@@ -158,11 +151,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         grupo_muscular: string;
       }
 
-      interface ClienteRow {
-        id: string;
-        nombre: string;
-      }
-
       interface EjercicioRutina {
         ejercicio: EjercicioRow;
         dia: number;
@@ -188,7 +176,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
       const inputNombreRutina = document.getElementById('input-nombre-rutina') as HTMLInputElement | null;
       const selectDias = document.getElementById('select-dias') as HTMLSelectElement | null;
-      const selectCliente = document.getElementById('select-cliente') as HTMLSelectElement | null;
       const inputBuscarEjercicio = document.getElementById('input-buscar-ejercicio') as HTMLInputElement | null;
       const ejerciciosCargando = document.getElementById('ejercicios-cargando');
       const ejerciciosVacio = document.getElementById('ejercicios-vacio');
@@ -229,8 +216,7 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
       function actualizarBotonGuardar(): void {
         if (!btnGuardar) return;
         const nombre = inputNombreRutina?.value.trim() ?? '';
-        const clienteId = selectCliente?.value ?? '';
-        btnGuardar.disabled = !nombre || !clienteId || listaRutina.length === 0;
+        btnGuardar.disabled = !nombre || listaRutina.length === 0;
       }
 
       function ejerciciosDelDia(dia: number): EjercicioRutina[] {
@@ -461,50 +447,11 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         renderizarDisponibles();
       }
 
-      async function cargarClientes(): Promise<void> {
-        const { data, error } = await supabase
-          .from('clientes')
-          .select('id, nombre')
-          .eq('gimnasio_id', GIMNASIO_ID)
-          .eq('profesor_id', profesorId)
-          .order('nombre', { ascending: true });
-
-        if (error) {
-          mostrarError(`No se pudieron cargar los alumnos: ${error.message}`);
-          return;
-        }
-
-        const clientes = (data ?? []) as ClienteRow[];
-
-        if (selectCliente) {
-          selectCliente.replaceChildren();
-          const placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = 'Seleccioná un alumno';
-          placeholder.disabled = true;
-          placeholder.selected = true;
-          selectCliente.append(placeholder);
-
-          for (const cliente of clientes) {
-            const opcion = document.createElement('option');
-            opcion.value = cliente.id;
-            opcion.textContent = cliente.nombre;
-            selectCliente.append(opcion);
-          }
-
-          selectCliente.disabled = false;
-        }
-      }
-
       // ── Rutinas existentes ──────────────────────────────────────────
 
       interface RutinaRow {
         id: string;
         nombre: string;
-        cliente_id: string | null;
-        cliente_nombre?: string;
-        total_ejercicios: number;
-        total_dias: number;
         created_at: string;
       }
 
@@ -525,7 +472,7 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
         const { data: rutinas, error } = await supabase
           .from('rutinas')
-          .select('id, nombre, cliente_id, created_at')
+          .select('id, nombre, created_at')
           .eq('gimnasio_id', GIMNASIO_ID)
           .order('created_at', { ascending: false });
 
@@ -534,14 +481,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
           mostrarError(`No se pudieron cargar las rutinas: ${error.message}`);
           return;
         }
-
-        const { data: clientes } = await supabase
-          .from('clientes')
-          .select('id, nombre')
-          .eq('gimnasio_id', GIMNASIO_ID);
-
-        const mapaClientes = new Map<string, string>();
-        (clientes ?? []).forEach((c) => mapaClientes.set(c.id, c.nombre));
 
         const { data: ejerciciosRutina } = await supabase
           .from('rutina_ejercicio')
@@ -572,14 +511,13 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
             const stats = statsRutinas.get(r.id);
             const totalEj = stats?.total ?? 0;
             const totalDias = stats?.dias.size ?? 0;
-            const clienteNombre = r.cliente_id ? (mapaClientes.get(r.cliente_id) ?? '—') : '—';
             const fecha = new Date(r.created_at).toLocaleDateString('es-AR');
 
             return `
           <div class="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50">
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-zinc-900">${r.nombre}</p>
-              <p class="text-xs text-zinc-500">${clienteNombre} · ${totalEj} ejercicio${totalEj !== 1 ? 's' : ''} · ${totalDias} día${totalDias !== 1 ? 's' : ''} · ${fecha}</p>
+              <p class="text-xs text-zinc-500">${totalEj} ejercicio${totalEj !== 1 ? 's' : ''} · ${totalDias} día${totalDias !== 1 ? 's' : ''} · ${fecha}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <button type="button" data-editar-rutina="${r.id}"
@@ -622,7 +560,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         }
 
         if (inputNombreRutina) inputNombreRutina.value = rutina.nombre;
-        if (selectCliente) selectCliente.value = rutina.cliente_id ?? '';
 
         const dias = new Set((ejerciciosData ?? []).map((e) => e.dia));
         totalDias = Math.max(dias.size, 1);
@@ -675,7 +612,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         btnCancelarEdicion?.setAttribute('hidden', '');
         listaRutina = [];
         if (inputNombreRutina) inputNombreRutina.value = '';
-        if (selectCliente) selectCliente.selectedIndex = 0;
         seleccionarDia(1);
         ocultarAlertas();
       });
@@ -816,10 +752,8 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         ocultarAlertas();
 
         const nombre = inputNombreRutina?.value.trim() ?? '';
-        const clienteId = selectCliente?.value ?? '';
 
         if (!nombre) { mostrarError('Ingresá un nombre para la rutina.'); return; }
-        if (!clienteId) { mostrarError('Seleccioná un alumno.'); return; }
         if (listaRutina.length === 0) { mostrarError('Agregá al menos un ejercicio.'); return; }
 
         btnGuardar.disabled = true;
@@ -830,7 +764,7 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         if (rutinaEditandoId) {
           const { error: errorUpdate } = await supabase
             .from('rutinas')
-            .update({ nombre, cliente_id: clienteId })
+            .update({ nombre })
             .eq('id', rutinaEditandoId);
 
           if (errorUpdate) {
@@ -845,7 +779,7 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         } else {
           const { data: rutinaCreada, error: errorRutina } = await supabase
             .from('rutinas')
-            .insert([{ nombre, cliente_id: clienteId, gimnasio_id: GIMNASIO_ID }])
+            .insert([{ nombre, gimnasio_id: GIMNASIO_ID }])
             .select('id')
             .single();
 
@@ -898,7 +832,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         btnCancelarEdicion?.setAttribute('hidden', '');
         listaRutina = [];
         if (inputNombreRutina) inputNombreRutina.value = '';
-        if (selectCliente) selectCliente.selectedIndex = 0;
         seleccionarDia(1);
         void cargarRutinas();
       });
@@ -907,5 +840,5 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
       renderizarTabs();
       seleccionarDia(1);
-      void Promise.all([cargarEjercicios(), cargarClientes(), cargarRutinas()]);
+      void Promise.all([cargarEjercicios(), cargarRutinas()]);
     </script>

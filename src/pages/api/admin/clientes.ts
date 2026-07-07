@@ -12,10 +12,10 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   }
 
-  const [clientesRes, planesRes, profesoresRes] = await Promise.all([
+  const [clientesRes, planesRes, profesoresRes, rutinasRes] = await Promise.all([
     supabase
       .from('clientes')
-      .select('id, nombre, dni, telefono, plan_id, profesor_id')
+      .select('id, nombre, dni, telefono, plan_id, profesor_id, rutina_id')
       .eq('gimnasio_id', GIMNASIO_ID)
       .order('nombre', { ascending: true }),
     supabase
@@ -25,6 +25,11 @@ export const GET: APIRoute = async ({ cookies }) => {
       .order('nombre', { ascending: true }),
     supabase
       .from('profesores')
+      .select('id, nombre')
+      .eq('gimnasio_id', GIMNASIO_ID)
+      .order('nombre', { ascending: true }),
+    supabase
+      .from('rutinas')
       .select('id, nombre')
       .eq('gimnasio_id', GIMNASIO_ID)
       .order('nombre', { ascending: true }),
@@ -66,6 +71,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     clientes,
     planes: planesRes.data ?? [],
     profesores: profesoresRes.data ?? [],
+    rutinas: rutinasRes.data ?? [],
     pagosMap,
   }), {
     status: 200,
@@ -149,7 +155,7 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
   }
 
   const body = await request.json();
-  const { cliente_id, nombre, dni, telefono, plan_id, profesor_id, fecha_vencimiento, monto_pagado, metodo_pago } = body;
+  const { cliente_id, nombre, dni, telefono, plan_id, profesor_id, rutina_id, fecha_vencimiento, monto_pagado, metodo_pago } = body;
 
   if (!cliente_id || !nombre || !dni || !plan_id || !profesor_id) {
     return new Response(JSON.stringify({ error: 'Faltan campos obligatorios' }), {
@@ -159,9 +165,13 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
   }
 
   // 1) Update client
+  const updateData: Record<string, string | null> = { nombre, dni, telefono: telefono || null, plan_id, profesor_id };
+  if (rutina_id !== undefined) {
+    updateData.rutina_id = rutina_id || null;
+  }
   const { error: errorUpdate } = await supabase
     .from('clientes')
-    .update({ nombre, dni, telefono: telefono || null, plan_id, profesor_id })
+    .update(updateData)
     .eq('id', cliente_id);
 
   if (errorUpdate) {

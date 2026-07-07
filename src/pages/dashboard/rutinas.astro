@@ -54,13 +54,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
                 <option value="6">6 días</option>
               </select>
             </div>
-            <div>
-              <label for="select-cliente" class="block text-sm font-medium text-zinc-700">Asignar a alumno</label>
-              <select id="select-cliente" required
-                class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                <option value="" disabled selected>Cargando alumnos…</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -153,11 +146,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
     grupo_muscular: string;
   }
 
-  interface ClienteRow {
-    id: string;
-    nombre: string;
-  }
-
   interface EjercicioRutina {
     ejercicio: EjercicioRow;
     dia: number;
@@ -183,7 +171,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
   const inputNombreRutina = document.getElementById('input-nombre-rutina') as HTMLInputElement | null;
   const selectDias = document.getElementById('select-dias') as HTMLSelectElement | null;
-  const selectCliente = document.getElementById('select-cliente') as HTMLSelectElement | null;
   const inputBuscarEjercicio = document.getElementById('input-buscar-ejercicio') as HTMLInputElement | null;
   const ejerciciosCargando = document.getElementById('ejercicios-cargando');
   const ejerciciosVacio = document.getElementById('ejercicios-vacio');
@@ -224,8 +211,7 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
   function actualizarBotonGuardar(): void {
     if (!btnGuardar) return;
     const nombre = inputNombreRutina?.value.trim() ?? '';
-    const clienteId = selectCliente?.value ?? '';
-    btnGuardar.disabled = !nombre || !clienteId || listaRutina.length === 0;
+    btnGuardar.disabled = !nombre || listaRutina.length === 0;
   }
 
   function ejerciciosDelDia(dia: number): EjercicioRutina[] {
@@ -451,32 +437,11 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
     todosLosEjercicios = (json.ejercicios ?? []) as EjercicioRow[];
     renderizarDisponibles();
-
-    const clientes = (json.clientes ?? []) as ClienteRow[];
-    if (selectCliente) {
-      selectCliente.replaceChildren();
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = 'Seleccioná un alumno';
-      placeholder.disabled = true;
-      placeholder.selected = true;
-      selectCliente.append(placeholder);
-
-      for (const cliente of clientes) {
-        const opcion = document.createElement('option');
-        opcion.value = cliente.id;
-        opcion.textContent = cliente.nombre;
-        selectCliente.append(opcion);
-      }
-
-      selectCliente.disabled = false;
-    }
   }
 
   // ── Eventos ──────────────────────────────────────────────────────
 
   inputNombreRutina?.addEventListener('input', actualizarBotonGuardar);
-  selectCliente?.addEventListener('change', actualizarBotonGuardar);
 
   selectDias?.addEventListener('change', () => {
     totalDias = Number(selectDias.value) || 3;
@@ -585,10 +550,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
   interface RutinaRow {
     id: string;
     nombre: string;
-    cliente_id: string | null;
-    cliente_nombre?: string;
-    total_ejercicios: number;
-    total_dias: number;
     created_at: string;
   }
 
@@ -619,8 +580,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
     const rutinasData = (json.rutinas ?? []) as RutinaRow[];
     const statsMap = json.statsRutinas ?? {};
-    const mapaClientes = new Map<string, string>();
-    (json.clientes ?? []).forEach((c: { id: string; nombre: string }) => mapaClientes.set(c.id, c.nombre));
 
     if (rutinasData.length === 0) {
       rutinasVacio?.classList.remove('hidden');
@@ -635,14 +594,13 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
         const stats = statsMap[r.id];
         const totalEj = stats?.total ?? 0;
         const totalDias = stats?.dias?.length ?? 0;
-        const clienteNombre = r.cliente_id ? (mapaClientes.get(r.cliente_id) ?? '—') : '—';
         const fecha = new Date(r.created_at).toLocaleDateString('es-AR');
 
         return `
           <div class="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50">
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-zinc-900">${r.nombre}</p>
-              <p class="text-xs text-zinc-500">${clienteNombre} · ${totalEj} ejercicio${totalEj !== 1 ? 's' : ''} · ${totalDias} día${totalDias !== 1 ? 's' : ''} · ${fecha}</p>
+              <p class="text-xs text-zinc-500">${totalEj} ejercicio${totalEj !== 1 ? 's' : ''} · ${totalDias} día${totalDias !== 1 ? 's' : ''} · ${fecha}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <button type="button" data-editar-rutina="${r.id}"
@@ -677,9 +635,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
 
     // Poblar formulario
     if (inputNombreRutina) inputNombreRutina.value = rutina.nombre;
-    if (selectCliente) {
-      selectCliente.value = rutina.cliente_id ?? '';
-    }
 
     // Calcular días únicos
     const dias = new Set(ejerciciosData.map((e: { dia: number }) => e.dia));
@@ -734,7 +689,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
     btnCancelarEdicion?.setAttribute('hidden', '');
     listaRutina = [];
     if (inputNombreRutina) inputNombreRutina.value = '';
-    if (selectCliente) selectCliente.selectedIndex = 0;
     seleccionarDia(1);
     ocultarAlertas();
   });
@@ -782,10 +736,8 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
     ocultarAlertas();
 
     const nombre = inputNombreRutina?.value.trim() ?? '';
-    const clienteId = selectCliente?.value ?? '';
 
     if (!nombre) { mostrarError('Ingresá un nombre para la rutina.'); return; }
-    if (!clienteId) { mostrarError('Seleccioná un alumno.'); return; }
     if (listaRutina.length === 0) { mostrarError('Agregá al menos un ejercicio.'); return; }
 
     btnGuardar.disabled = true;
@@ -813,8 +765,8 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
       method: rutinaEditandoId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rutinaEditandoId
-        ? { rutina_id: rutinaEditandoId, nombre, cliente_id: clienteId, ejercicios: ejerciciosPayload }
-        : { nombre, cliente_id: clienteId, ejercicios: ejerciciosPayload }),
+        ? { rutina_id: rutinaEditandoId, nombre, ejercicios: ejerciciosPayload }
+        : { nombre, ejercicios: ejerciciosPayload }),
     });
     const json = await res.json();
 
@@ -836,7 +788,6 @@ const iconTrash = `<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-
     btnCancelarEdicion?.setAttribute('hidden', '');
     listaRutina = [];
     if (inputNombreRutina) inputNombreRutina.value = '';
-    if (selectCliente) selectCliente.selectedIndex = 0;
     seleccionarDia(1);
     void cargarRutinas();
   });

@@ -84,7 +84,6 @@ import ProfesorLayout from '../../layouts/ProfesorLayout.astro';
   interface RutinaRow {
     id: string;
     nombre: string;
-    cliente_id: string;
     created_at: string;
   }
 
@@ -234,38 +233,41 @@ import ProfesorLayout from '../../layouts/ProfesorLayout.astro';
     rutinaVacia?.classList.add('hidden');
     rutinaError?.classList.add('hidden');
 
-    // 0) Cargar nombre del alumno
-    const { data: clienteData } = await supabase
+    // 0) Cargar nombre + rutina_id del alumno
+    const { data: datosCliente, error: errorCliente } = await supabase
       .from('clientes')
-      .select('nombre')
+      .select('nombre, rutina_id')
       .eq('id', clienteId)
       .eq('gimnasio_id', GIMNASIO_ID)
       .maybeSingle();
 
-    if (clienteData && alumnoNombre) {
-      alumnoNombre.textContent = clienteData.nombre;
-      alumnoInfo?.classList.remove('hidden');
-    }
-
-    // 1) Buscar rutina del alumno
-    const { data: rutinasData, error: errorRutina } = await supabase
-      .from('rutinas')
-      .select('id, nombre, cliente_id, created_at')
-      .eq('cliente_id', clienteId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (errorRutina) {
+    if (errorCliente) {
       if (rutinaCargando) rutinaCargando.hidden = true;
-      mostrarError(`Error al cargar la rutina: ${errorRutina.message}`);
+      mostrarError(`Error al cargar los datos del alumno: ${errorCliente.message}`);
       return;
     }
 
-    if (!rutinasData) {
+    if (datosCliente) {
+      if (alumnoNombre) alumnoNombre.textContent = datosCliente.nombre;
+      alumnoInfo?.classList.remove('hidden');
+    }
+
+    if (!datosCliente?.rutina_id) {
       if (rutinaCargando) rutinaCargando.hidden = true;
       rutinaVacia?.classList.remove('hidden');
       rutinaVacia?.classList.add('flex');
+      return;
+    }
+
+    const { data: rutinasData, error: errorRutina } = await supabase
+      .from('rutinas')
+      .select('id, nombre, created_at')
+      .eq('id', datosCliente.rutina_id)
+      .maybeSingle();
+
+    if (errorRutina || !rutinasData) {
+      if (rutinaCargando) rutinaCargando.hidden = true;
+      mostrarError(errorRutina ? `Error al cargar la rutina: ${errorRutina.message}` : 'No se encontró la rutina asignada.');
       return;
     }
 

@@ -354,6 +354,16 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
           <option value="" disabled selected>Seleccioná un profesor</option>
         </select>
       </div>
+      <div>
+        <label for="editar-rutina" class="block text-sm font-medium text-zinc-700">Rutina Asignada</label>
+        <select
+          id="editar-rutina"
+          name="rutina_id"
+          class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="">Sin rutina</option>
+        </select>
+      </div>
 
       <p id="form-editar-error" class="hidden text-sm text-red-600"></p>
 
@@ -407,6 +417,7 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
     telefono: string | null;
     plan_id: string | null;
     profesor_id: string | null;
+    rutina_id: string | null;
   }
 
   /**
@@ -448,6 +459,7 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
 
   let planesCatalogo: PlanOption[] = [];
   let profesoresCatalogo: ProfesorOption[] = [];
+  let rutinasCatalogo: { id: string; nombre: string }[] = [];
   let estadoPagina: EstadoPagina = { items: [], paginaActual: 1 };
   let mapaPlanesGlobal = new Map<string, string>();
 
@@ -686,6 +698,25 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
     }
   }
 
+  function poblarSelectRutinasEditar(rutinas: { id: string; nombre: string }[]): void {
+    if (!editarRutina) return;
+    editarRutina.replaceChildren();
+
+    const vacio = document.createElement('option');
+    vacio.value = '';
+    vacio.textContent = 'Sin rutina';
+    editarRutina.append(vacio);
+
+    for (const rutina of rutinas) {
+      const opcion = document.createElement('option');
+      opcion.value = rutina.id;
+      opcion.textContent = rutina.nombre;
+      editarRutina.append(opcion);
+    }
+
+    editarRutina.disabled = false;
+  }
+
   function crearFilaCliente(cliente: ClienteConPago, mapaPlanes: Map<string, string>): HTMLTableRowElement {
     if (!templateFilaCliente?.content.firstElementChild) {
       throw new Error('No se encontró la plantilla de fila de cliente.');
@@ -713,6 +744,7 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
       btnEditar.dataset.telefono = cliente.telefono ?? '';
       btnEditar.dataset.plan = cliente.plan_id ?? '';
       btnEditar.dataset.profesorid = cliente.profesor_id ?? '';
+      btnEditar.dataset.rutinaid = cliente.rutina_id ?? '';
       btnEditar.dataset.fechavencimiento = cliente.fecha_vencimiento ?? '';
       btnEditar.dataset.monto = cliente.monto_pagado != null ? String(cliente.monto_pagado) : '';
     }
@@ -760,8 +792,10 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
 
     planesCatalogo = (json.planes ?? []) as PlanOption[];
     profesoresCatalogo = (json.profesores ?? []) as ProfesorOption[];
+    rutinasCatalogo = (json.rutinas ?? []) as { id: string; nombre: string }[];
     poblarSelectPlanes(planesCatalogo);
     poblarSelectProfesores(profesoresCatalogo);
+    poblarSelectRutinasEditar(rutinasCatalogo);
 
     const mapaPlanes = new Map(planesCatalogo.map((plan) => [plan.id, plan.nombre]));
     const clientes = (json.clientes ?? []) as ClienteRow[];
@@ -924,6 +958,7 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
   const editarProfesor = document.getElementById('editar-profesor') as HTMLSelectElement | null;
   const editarFechaVencimiento = document.getElementById('editar-fecha-vencimiento') as HTMLInputElement | null;
   const editarMonto = document.getElementById('editar-monto') as HTMLInputElement | null;
+  const editarRutina = document.getElementById('editar-rutina') as HTMLSelectElement | null;
   const formEditarError = document.getElementById('form-editar-error');
   const btnGuardarEdicion = document.getElementById('btn-guardar-edicion') as HTMLButtonElement | null;
   const btnEliminarCliente = document.getElementById('btn-eliminar-cliente') as HTMLButtonElement | null;
@@ -957,6 +992,7 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
 
     poblarSelectPlanesEditar(planesCatalogo);
     poblarSelectProfesoresEditar(profesoresCatalogo);
+    poblarSelectRutinasEditar(rutinasCatalogo);
 
     const planId = dataset.plan ?? '';
     if (planId) {
@@ -966,6 +1002,11 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
     const profesorId = dataset.profesorid ?? '';
     if (profesorId) {
       editarProfesor.value = profesorId;
+    }
+
+    const rutinaId = dataset.rutinaid ?? '';
+    if (editarRutina) {
+      editarRutina.value = rutinaId;
     }
 
     if (editarFechaVencimiento) editarFechaVencimiento.value = aFechaInput(dataset.fechavencimiento);
@@ -1090,6 +1131,7 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
     const fechaVencimiento = aFechaONull(datos.get('fecha_vencimiento'));
     const montoPagado = aMontoValido(datos.get('monto_pagado'), 0);
     const metodoPago = aTextoRequerido(datos.get('metodo_pago')) || 'Efectivo';
+    const rutinaId = aTextoRequerido(datos.get('rutina_id')) || null;
     const gimnasioId = resolverGimnasioId();
 
     // Mismo criterio que en el alta: se valida todo antes de tocar la
@@ -1148,11 +1190,13 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
         telefono,
         plan_id: planId,
         profesor_id: profesorId,
+        rutina_id: rutinaId,
         fecha_vencimiento: fechaVencimiento,
         monto_pagado: montoPagado,
         metodo_pago: metodoPago,
       }),
     });
+
     const json = await res.json();
 
     btnGuardarEdicion.disabled = false;

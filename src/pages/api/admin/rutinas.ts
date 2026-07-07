@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   }
 
-  const [ejerciciosRes, clientesRes, rutinasRes] = await Promise.all([
+  const [ejerciciosRes, rutinasRes] = await Promise.all([
     supabase
       .from('ejercicios')
       .select('id, nombre, grupo_muscular')
@@ -20,13 +20,8 @@ export const GET: APIRoute = async ({ cookies }) => {
       .order('grupo_muscular', { ascending: true })
       .order('nombre', { ascending: true }),
     supabase
-      .from('clientes')
-      .select('id, nombre')
-      .eq('gimnasio_id', GIMNASIO_ID)
-      .order('nombre', { ascending: true }),
-    supabase
       .from('rutinas')
-      .select('id, nombre, cliente_id, created_at')
+      .select('id, nombre, created_at')
       .eq('gimnasio_id', GIMNASIO_ID)
       .order('created_at', { ascending: false }),
   ]);
@@ -60,7 +55,6 @@ export const GET: APIRoute = async ({ cookies }) => {
 
   return new Response(JSON.stringify({
     ejercicios: ejerciciosRes.data ?? [],
-    clientes: clientesRes.data ?? [],
     rutinas: rutinasData,
     statsRutinas: statsMap,
   }), {
@@ -79,10 +73,10 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   }
 
   const body = await request.json();
-  const { nombre, cliente_id, ejercicios } = body;
+  const { nombre, ejercicios } = body;
 
-  if (!nombre || !cliente_id) {
-    return new Response(JSON.stringify({ error: 'Faltan nombre o cliente_id' }), {
+  if (!nombre) {
+    return new Response(JSON.stringify({ error: 'Falta el nombre de la rutina' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -91,7 +85,7 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   // 1) Create rutina
   const { data: rutinaCreada, error: errorRutina } = await supabase
     .from('rutinas')
-    .insert([{ nombre, cliente_id, gimnasio_id: GIMNASIO_ID }])
+    .insert([{ nombre, gimnasio_id: GIMNASIO_ID }])
     .select('id')
     .single();
 
@@ -153,10 +147,10 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
   }
 
   const body = await request.json();
-  const { rutina_id, nombre, cliente_id, ejercicios } = body;
+  const { rutina_id, nombre, ejercicios } = body;
 
-  if (!rutina_id || !nombre || !cliente_id) {
-    return new Response(JSON.stringify({ error: 'Faltan rutina_id, nombre o cliente_id' }), {
+  if (!rutina_id || !nombre) {
+    return new Response(JSON.stringify({ error: 'Faltan rutina_id o nombre' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -165,7 +159,7 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
   // 1) Update rutina
   const { error: errorUpdate } = await supabase
     .from('rutinas')
-    .update({ nombre, cliente_id })
+    .update({ nombre })
     .eq('id', rutina_id);
 
   if (errorUpdate) {
@@ -282,7 +276,7 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
   const [rutinaRes, ejerciciosRes] = await Promise.all([
     supabase
       .from('rutinas')
-      .select('id, nombre, cliente_id')
+      .select('id, nombre')
       .eq('id', rutinaId)
       .single(),
     supabase

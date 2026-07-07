@@ -374,25 +374,35 @@ const brandMark = `<path d="M4 9v6" /><path d="M20 9v6" /><path d="M7 6v12" /><p
           // Si falla, no bloqueamos la rutina
         }
 
-        // 1) Buscar rutina del alumno
-        const { data: rutinasData, error: errorRutina } = await supabase
-          .from('rutinas')
-          .select('id, nombre, cliente_id, created_at')
-          .eq('cliente_id', alumnoId)
-          .order('created_at', { ascending: false })
-          .limit(1)
+        // 1) Buscar rutina del alumno desde clientes.rutina_id
+        const { data: clienteData, error: errorCliente } = await supabase
+          .from('clientes')
+          .select('rutina_id')
+          .eq('id', alumnoId)
           .maybeSingle();
 
-        if (errorRutina) {
+        if (errorCliente) {
           if (rutinaCargando) rutinaCargando.hidden = true;
-          mostrarError(`Error al cargar la rutina: ${errorRutina.message}`);
+          mostrarError(`Error al cargar tus datos: ${errorCliente.message}`);
           return;
         }
 
-        if (!rutinasData) {
+        if (!clienteData?.rutina_id) {
           if (rutinaCargando) rutinaCargando.hidden = true;
           rutinaVacia?.classList.remove('hidden');
           rutinaVacia?.classList.add('flex');
+          return;
+        }
+
+        const { data: rutinasData, error: errorRutina } = await supabase
+          .from('rutinas')
+          .select('id, nombre, created_at')
+          .eq('id', clienteData.rutina_id)
+          .maybeSingle();
+
+        if (errorRutina || !rutinasData) {
+          if (rutinaCargando) rutinaCargando.hidden = true;
+          mostrarError(errorRutina ? `Error al cargar la rutina: ${errorRutina.message}` : 'No se encontró la rutina asignada.');
           return;
         }
 
