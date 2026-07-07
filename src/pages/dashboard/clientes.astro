@@ -60,27 +60,27 @@ const iconUsers = `<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M3 19
       </button>
     </div>
 
-    <div id="clientes-contenido" class="hidden max-w-5xl w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+    <div id="clientes-contenido" class="hidden overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full table-fixed border-collapse text-left text-sm">
-            <thead>
-              <tr class="border-b border-zinc-200 bg-zinc-50/75">
-                <th scope="col" class="w-[22%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Nombre</th>
-                <th scope="col" class="w-[10%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">DNI</th>
-                <th scope="col" class="w-[20%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Plan</th>
-                <th scope="col" class="w-[16%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Vencimiento</th>
-                <th scope="col" class="w-[14%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Estado</th>
-                <th scope="col" class="w-[18%] px-6 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Acciones</th>
+          <table class="min-w-full divide-y divide-zinc-200">
+            <thead class="bg-zinc-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Nombre</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">DNI</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Plan</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Vencimiento</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Estado</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Acciones</th>
               </tr>
             </thead>
-            <tbody id="tabla-clientes"></tbody>
+            <tbody id="tabla-clientes" class="divide-y divide-zinc-100"></tbody>
           </table>
         </div>
       <Paginacion id="pag-clientes" />
       </div>
       
     <template id="template-fila-cliente">
-      <tr class="border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/50">
+      <tr class="hover:bg-zinc-50 transition-colors">
         <td data-col="nombre" class="px-6 py-4 text-sm font-semibold text-zinc-900 whitespace-nowrap"></td>
         <td data-col="dni" class="px-6 py-4 text-sm tabular-nums text-zinc-600 whitespace-nowrap"></td>
         <td data-col="plan" class="px-6 py-4 text-sm text-zinc-600 whitespace-nowrap"></td>
