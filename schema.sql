@@ -140,73 +140,14 @@ ALTER TABLE ejercicios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rutinas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rutina_ejercicio ENABLE ROW LEVEL SECURITY;
 
--- Políticas para admin (Supabase Auth)
-CREATE POLICY "admin_select_gimnasios" ON gimnasios
-  FOR SELECT USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_profesores" ON profesores
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_planes" ON planes
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_clientes" ON clientes
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_pagos" ON pagos
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_ejercicios" ON ejercicios
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_rutinas" ON rutinas
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
-CREATE POLICY "admin_all_rutina_ejercicio" ON rutina_ejercicio
-  FOR ALL USING (auth.uid() IN (
-    SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'
-  ));
-
--- Políticas para profesores (autenticación custom via middleware)
--- Se permiten operaciones sobre datos de su gimnasio
-CREATE POLICY "profesor_select_profesores" ON profesores
-  FOR SELECT USING (true);
-
-CREATE POLICY "profesor_select_ejercicios" ON ejercicios
-  FOR SELECT USING (true);
-
-CREATE POLICY "profesor_select_planes" ON planes
-  FOR SELECT USING (true);
-
-CREATE POLICY "profesor_crud_rutinas" ON rutinas
-  FOR ALL USING (true);
-
-CREATE POLICY "profesor_crud_rutina_ejercicio" ON rutina_ejercicio
-  FOR ALL USING (true);
-
-CREATE POLICY "profesor_select_clientes" ON clientes
-  FOR SELECT USING (true);
-
-CREATE POLICY "profesor_update_clientes" ON clientes
-  FOR UPDATE USING (true) WITH CHECK (true);
-
--- Políticas de lectura pública para ejercicios (catálogo compartido)
-CREATE POLICY "public_select_ejercicios" ON ejercicios
-  FOR SELECT USING (true);
+CREATE POLICY "dev_all" ON gimnasios FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON profesores FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON planes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON clientes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON pagos FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON ejercicios FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON rutinas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "dev_all" ON rutina_ejercicio FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================
 -- EJERCICIOS BASE

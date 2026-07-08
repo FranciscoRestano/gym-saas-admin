@@ -1,10 +1,9 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import Paginacion from '../../components/Paginacion.astro';
 
 const iconDollar = `<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />`;
 const iconCalendar = `<rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><path d="M16 2v4M8 2v4M3 10h18" />`;
-const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8M16 12H8M13 16H8" />`;
+const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8M16 12H8M13 16H8" />`;
 ---
 
 <DashboardLayout title="Caja">
@@ -15,7 +14,7 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
     </div>
 
     <!-- Métricas -->
-    <div id="caja-metricas" class="hidden grid-cols-1 gap-4 sm:grid-cols-4">
+    <div id="caja-metricas" class="hidden grid-cols-1 gap-4 sm:grid-cols-3">
       <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div class="flex items-center gap-3">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -46,19 +45,6 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
           <div>
             <p class="text-sm font-medium text-zinc-500">Total Transacciones</p>
             <p id="metrica-transacciones" class="text-2xl font-semibold text-zinc-900">—</p>
-          </div>
-        </div>
-      </div>
-      <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center gap-3">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </span>
-          <div>
-            <p class="text-sm font-medium text-zinc-500">Desglose por Método</p>
-            <p id="metrica-desglose" class="text-sm font-medium text-zinc-700">—</p>
           </div>
         </div>
       </div>
@@ -102,7 +88,6 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Fecha</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Alumno</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Plan</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Medio de Pago</th>
                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Monto</th>
               </tr>
             </thead>
@@ -110,22 +95,20 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
           </table>
         </div>
       </div>
-      <Paginacion id="pag-caja" />
     </div>
   </div>
 </DashboardLayout>
 
 <script>
-  import { itemsPagina, renderizarPaginacion, type EstadoPagina } from '../../lib/paginacion';
+  import { supabase } from '../../lib/supabase';
 
-  let estadoPagina: EstadoPagina = { items: [], paginaActual: 1 };
+  const GIMNASIO_ID = '00000000-0000-0000-0000-000000000000';
 
-  interface PagoEnriquecido {
-    cliente_nombre: string;
-    plan_nombre: string;
+  interface PagoCompleto {
     fecha_pago: string | null;
     monto_pagado: number | null;
-    metodo_pago: string | null;
+    clientes: { nombre: string } | null;
+    planes: { nombre: string } | null;
   }
 
   const cargandoEl = document.getElementById('caja-cargando');
@@ -154,7 +137,10 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
 
   function hoyISO(): string {
     const ahora = new Date();
-    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+    const year = ahora.getFullYear();
+    const month = String(ahora.getMonth() + 1).padStart(2, '0');
+    const day = String(ahora.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   function mostrarError(mensaje: string | null): void {
@@ -169,40 +155,33 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
     vacioEl?.classList.toggle('flex', visible);
   }
 
-  function actualizarMetricas(pagos: PagoEnriquecido[]): void {
+  function actualizarMetricas(pagos: PagoCompleto[]): void {
     const hoy = hoyISO();
-    const totalIngresos = pagos.reduce((s, p) => s + (p.monto_pagado ?? 0), 0);
-    const ingresosHoy = pagos.filter((p) => p.fecha_pago === hoy).reduce((s, p) => s + (p.monto_pagado ?? 0), 0);
-    const efectivo = pagos.filter((p) => p.metodo_pago === 'Efectivo').reduce((s, p) => s + (p.monto_pagado ?? 0), 0);
-    const transferencia = pagos.filter((p) => p.metodo_pago === 'Transferencia').reduce((s, p) => s + (p.monto_pagado ?? 0), 0);
+
+    const totalIngresos = pagos.reduce((suma, p) => suma + (p.monto_pagado ?? 0), 0);
+    const ingresosHoy = pagos
+      .filter((p) => p.fecha_pago === hoy)
+      .reduce((suma, p) => suma + (p.monto_pagado ?? 0), 0);
 
     if (metricaTotal) metricaTotal.textContent = formatMonto(totalIngresos);
     if (metricaHoy) metricaHoy.textContent = formatMonto(ingresosHoy);
     if (metricaTransacciones) metricaTransacciones.textContent = String(pagos.length);
-
-    const metricaDesglose = document.getElementById('metrica-desglose');
-    if (metricaDesglose) {
-      metricaDesglose.innerHTML = `
-        <span class="text-emerald-600">Efectivo: ${formatMonto(efectivo)}</span>
-        <span class="mx-2 text-zinc-300">|</span>
-        <span class="text-blue-600">Transferencia: ${formatMonto(transferencia)}</span>
-      `;
-    }
   }
 
-  function crearFila(pago: PagoEnriquecido): HTMLTableRowElement {
+  function crearFila(pago: PagoCompleto): HTMLTableRowElement {
     const fila = document.createElement('tr');
     fila.className = 'hover:bg-zinc-50 transition-colors';
-    const metodoPago = pago.metodo_pago ?? 'Efectivo';
+
+    const nombreAlumno = pago.clientes?.nombre ?? '—';
+    const nombrePlan = pago.planes?.nombre ?? '—';
+
     fila.innerHTML = `
       <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 tabular-nums">${formatFecha(pago.fecha_pago)}</td>
-      <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900">${pago.cliente_nombre}</td>
-      <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${pago.plan_nombre}</td>
-      <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">
-        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${metodoPago === 'Efectivo' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}">${metodoPago}</span>
-      </td>
+      <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900">${nombreAlumno}</td>
+      <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600">${nombrePlan}</td>
       <td class="whitespace-nowrap px-6 py-4 text-sm text-right font-medium text-zinc-900 tabular-nums">${formatMonto(pago.monto_pagado)}</td>
     `;
+
     return fila;
   }
 
@@ -213,46 +192,37 @@ const iconReceipt = `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l
     metricasEl?.classList.add('hidden');
     mostrarVacio(false);
 
-    const res = await fetch('/api/admin/caja');
+    const { data, error } = await supabase
+      .from('pagos')
+      .select('fecha_pago, monto_pagado, clientes(nombre), planes(nombre)')
+      .eq('gimnasio_id', GIMNASIO_ID)
+      .order('fecha_pago', { ascending: false });
 
     if (cargandoEl) cargandoEl.hidden = true;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Error desconocido' }));
-      mostrarError(`No se pudieron cargar los pagos: ${err.error}`);
+    if (error) {
+      mostrarError(`No se pudieron cargar los pagos: ${error.message}`);
       return;
     }
 
-    const { pagos, clientes, planes } = await res.json();
+    const pagos = (data ?? []) as unknown as PagoCompleto[];
 
     if (pagos.length === 0) {
       mostrarVacio(true);
       return;
     }
 
-    const pagosEnriquecidos: PagoEnriquecido[] = pagos.map((p) => ({
-      ...p,
-      cliente_nombre: clientes[p.cliente_id] ?? '—',
-      plan_nombre: p.plan_id ? (planes[p.plan_id] ?? '—') : '—',
-    }));
+    actualizarMetricas(pagos);
 
-    actualizarMetricas(pagosEnriquecidos);
-
-    estadoPagina.items = pagosEnriquecidos;
-    estadoPagina.paginaActual = 1;
-    renderizarTabla();
-    renderizarPaginacion('pag-caja', estadoPagina, (pagina) => { estadoPagina.paginaActual = pagina; renderizarTabla(); });
+    if (tablaCaJa) {
+      tablaCaJa.replaceChildren(...pagos.map((pago) => crearFila(pago)));
+    }
 
     contenidoEl?.classList.remove('hidden');
     metricasEl?.classList.remove('hidden');
   }
 
-  function renderizarTabla(): void {
-    if (!tablaCaJa) return;
-    const pagina = itemsPagina(estadoPagina.items, estadoPagina.paginaActual);
-    tablaCaJa.replaceChildren(...pagina.map((pago) => crearFila(pago as PagoEnriquecido)));
-  }
-
   btnReintentar?.addEventListener('click', () => void cargarDatos());
+
   void cargarDatos();
 </script>
